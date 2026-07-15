@@ -1,0 +1,22 @@
+# Ignore artifacts:
+build
+coverage
+.swc
+.husky
+public
+
+
+# Dependency directories
+node_modules
+
+# Build output
+.next
+
+# Log files
+*.log
+
+# Environment files
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local

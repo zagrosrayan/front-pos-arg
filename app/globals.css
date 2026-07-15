@@ -1,0 +1,154 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: 'IRANSansWeb';
+  font-style: normal;
+  font-weight: normal;
+  src: url('./fonts/IRANSansWeb.eot');
+  src:
+    url('./fonts/IRANSansWeb.eot?#iefix') format('embedded-opentype'),
+    url('./fonts/IRANSansWeb.woff2') format('woff2'),
+    url('./fonts/IRANSansWeb.woff') format('woff'),
+    url('./fonts/IRANSansWeb.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'IRANSansWeb';
+  font-style: normal;
+  font-weight: normal;
+  src: url('./fonts/IRANSansWeb_Medium.eot');
+  src:
+    url('./fonts/IRANSansWeb_Medium.eot?#iefix') format('embedded-opentype'),
+    url('./fonts/IRANSansWeb_Medium.woff') format('woff'),
+    url('./fonts/IRANSansWeb_Medium.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'IRANSansWeb';
+  font-style: normal;
+  font-weight: bold;
+  src: url('./fonts/IRANSansWeb_Bold.eot');
+  src:
+    url('./fonts/IRANSansWeb_Bold.eot?#iefix') format('embedded-opentype'),
+    url('./fonts/IRANSansWeb_Bold.woff') format('woff'),
+    url('./fonts/IRANSansWeb_Bold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Titr';
+  src: url('./fonts/titr.ttf') format('truetype');
+  unicode-range: U+30-39; /* Unicode range for digits 0-9 */
+}
+
+.iransans-regular {
+  font-family: 'IRANSansWeb', Arial, sans-serif !important;
+}
+
+.iransans-medium {
+  font-family: 'IRANSansWeb Medium', Arial, sans-serif !important;
+}
+
+.iransans-bold {
+  font-family: 'IRANSansWeb Bold', Arial, sans-serif !important;
+}
+
+* {
+  font-family: 'IRANSansWeb', Arial, sans-serif !important;
+}
+/* Change Autocomplete styles in Chrome*/
+/* input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  textarea:-webkit-autofill,
+  textarea:-webkit-autofill:hover,
+  textarea:-webkit-autofill:focus,
+  select:-webkit-autofill,
+  select:-webkit-autofill:hover,
+  select:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0px 1000px #00000000 inset;
+    box-shadow: 0 0 0px 1000px #00000000 inset;
+    transition: background-color 5000s ease-in-out 0s;
+  } */
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+/*@media (prefers-color-scheme: light) {*/
+/*  :root {*/
+/*    --background: #0a0a0a;*/
+/*    --foreground: #ededed;*/
+/*  }*/
+/*}*/
+
+body {
+  scrollbar-width: thin;
+
+  text-align: right;
+  line-height: 1.625rem;
+}
+/* Chrome, Edge, and Safari */
+*::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: darkgray; /* color of the scroll thumb */
+  border-radius: 20px; /* roundness of the scroll thumb */
+  border: 5px solid white; /* creates padding around scroll thumb */
+}
+
+/* body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+} */
+
+/* HTML: <div class="loader"></div> */
+.loader {
+  width: 50px;
+  aspect-ratio: 1;
+  display: grid;
+}
+.loader::before,
+.loader::after {
+  content: '';
+  grid-area: 1/1;
+  --c: no-repeat radial-gradient(farthest-side, #25b09b 92%, #0000);
+  background:
+    var(--c) 50% 0,
+    var(--c) 50% 100%,
+    var(--c) 100% 50%,
+    var(--c) 0 50%;
+  background-size: 12px 12px;
+  animation: l12 1s infinite;
+}
+.loader::before {
+  margin: 4px;
+  filter: hue-rotate(45deg);
+  background-size: 8px 8px;
+  animation-timing-function: linear;
+}
+
+@keyframes l12 {
+  100% {
+    transform: rotate(0.5turn);
+  }
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+.react-select__control {
+  @apply !min-h-10 !rounded-lg !border-2 !border-default-100 !bg-transparent !py-1.5;
+}
