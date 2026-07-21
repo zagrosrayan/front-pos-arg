@@ -30,188 +30,34 @@ import {
   Button,
   Checkbox,
   CheckboxGroup,
-  Chip,
   Modal,
   ModalBody,
   ModalContent,
   ModalFooter,
   ModalHeader,
-  Textarea,
   useDisclosure,
 } from '@heroui/react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Control, Controller, useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 
 type TargetCustomerType = 'resident' | 'Non_resident'
 
 type FormValues = NextPurchaseDiscountRequestProps & {
-  discount_sms_template: string
-  reminder_sms_template: string
   profit_manager_ids: number[]
   target_customer_types: TargetCustomerType[]
 }
-
-/* ─────────────────────────────────────────────
-   مودال قالب پیامک – قابل استفاده مجدد
-   ───────────────────────────────────────────── */
-
-type SmsTemplateModalProps = {
-  isOpen: boolean
-  onOpenChange: (isOpen: boolean) => void
-  title: string
-  helperText?: string
-  chips: string[]
-  chipColor?: 'primary' | 'warning' | 'success'
-  fieldName: 'discount_sms_template' | 'reminder_sms_template'
-  control: Control<FormValues>
-  placeholder?: string
-  chipDescriptions: Record<string, string>
-}
-
-const SmsTemplateModal = ({
-  isOpen,
-  onOpenChange,
-  title,
-  helperText,
-  chips,
-  chipColor = 'primary',
-  fieldName,
-  control,
-  placeholder,
-  chipDescriptions,
-}: SmsTemplateModalProps) => {
-  return (
-    <Modal
-      isOpen={isOpen}
-      onOpenChange={onOpenChange}
-      size="lg"
-      scrollBehavior="inside"
-    >
-      <ModalContent>
-        {(onClose) => (
-          <>
-            <ModalHeader className="flex flex-col gap-1">{title}</ModalHeader>
-
-            <ModalBody className="space-y-3">
-              <div className="flex flex-wrap gap-2">
-                {chips.map((c) => (
-                  <Chip key={c} size="sm" variant="flat" color={chipColor}>
-                    {`{${c}}`}
-                  </Chip>
-                ))}
-              </div>
-
-              <div className="rounded-lg bg-default-50 px-3 py-2 text-[11px] leading-relaxed text-default-600">
-                <p className="mb-1 font-semibold">توضیح متغیرها:</p>
-                <ul className="space-y-0.5">
-                  {chips.map((c) => (
-                    <li key={c}>
-                      <span className="font-semibold">{`{${c}}`}</span>{' '}
-                      <span>– {chipDescriptions[c]}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {helperText ? (
-                <p className="text-xs text-default-500">{helperText}</p>
-              ) : null}
-
-              <Controller
-                name={fieldName}
-                control={control}
-                rules={{ required: 'پر کردن این فیلد الزامی است.' }}
-                render={({ field, fieldState }) => (
-                  <Textarea
-                    {...field}
-                    label="متن پیامک"
-                    placeholder={placeholder}
-                    minRows={4}
-                    maxRows={8}
-                    isInvalid={!!fieldState.error}
-                    errorMessage={fieldState.error?.message}
-                  />
-                )}
-              />
-            </ModalBody>
-
-            <ModalFooter>
-              <Button variant="light" onPress={onClose}>
-                بستن
-              </Button>
-              <Button color="primary" onPress={onClose}>
-                تایید
-              </Button>
-            </ModalFooter>
-          </>
-        )}
-      </ModalContent>
-    </Modal>
-  )
-}
-
-/* ─────────────────────────────────────────────
-   دکمه نمایش/ویرایش قالب پیامک
-   ───────────────────────────────────────────── */
-
-type SmsFieldButtonProps = {
-  title: string
-  preview?: string
-  emptyText: string
-  onPress: () => void
-  error?: string
-  color?: 'primary' | 'warning' | 'success'
-}
-
-const SmsFieldButton = ({
-  title,
-  preview,
-  emptyText,
-  onPress,
-  error,
-  color = 'primary',
-}: SmsFieldButtonProps) => {
-  const txt = (preview || '').trim()
-
-  return (
-    <div>
-      <Button
-        type="button"
-        color={error ? 'danger' : color}
-        fullWidth
-        size="lg"
-        radius="sm"
-        onPress={onPress}
-      >
-        {title}
-      </Button>
-
-      <p className="mt-2 truncate text-xs text-default-500">
-        {error ? error : txt ? `پیش‌نمایش: ${txt}` : emptyText}
-      </p>
-    </div>
-  )
-}
-
-/* ─────────────────────────────────────────────
-   کامپوننت اصلی
-   ───────────────────────────────────────────── */
 
 type ProfitManagerItem = { id: number; name?: string; slug?: string }
 
 const NextPurchaseDiscountTable = () => {
   const infoDisclosure = useDisclosure()
   const deleteDisclosure = useDisclosure()
-  const discountSmsDisclosure = useDisclosure()
-  const reminderSmsDisclosure = useDisclosure()
 
   const methods = useForm<FormValues>({
     mode: 'onChange',
     defaultValues: {
       is_active: true,
       usage_limit: 1,
-      discount_sms_template: '',
-      reminder_sms_template: '',
       profit_manager_ids: [],
       target_customer_types: [],
     } as any,
@@ -223,39 +69,6 @@ const NextPurchaseDiscountTable = () => {
   const [existingDiscount, setExistingDiscount] =
     useState<NextPurchaseDiscountResponseProps | null>(null)
   const [profitManagers, setProfitManagers] = useState<ProfitManagerItem[]>([])
-  const [isLoadingProfitManagers, setIsLoadingProfitManagers] = useState(false)
-
-  const discountSmsPreview = methods.watch('discount_sms_template')
-  const reminderSmsPreview = methods.watch('reminder_sms_template')
-
-  /* ── متغیرهای پیامک تخفیف و یادآوری ── */
-  const discountSmsChips = useMemo(
-    () => [
-      'name',
-      'order_number',
-      'mobile',
-      'discount_ccode',
-      'discount_value',
-      'minimum_purchase',
-      'expiration_date',
-    ],
-    []
-  )
-
-  const discountSmsChipDescriptions: Record<string, string> = useMemo(
-    () => ({
-      name: 'نام مشتری',
-      order_number: 'شماره سفارش',
-      mobile: 'شماره موبایل مشتری',
-      discount_ccode: 'کد تخفیف',
-      discount_value: 'مبلغ یا درصد تخفیف',
-      minimum_purchase: 'حداقل مبلغ خرید برای اعمال تخفیف',
-      expiration_date: 'تاریخ انقضای تخفیف',
-    }),
-    []
-  )
-
-  /* ── توابع کمکی ── */
 
   const extractData = useCallback(
     (data: any): NextPurchaseDiscountResponseProps | null => {
@@ -290,7 +103,6 @@ const NextPurchaseDiscountTable = () => {
 
   const fetchProfitManagers = useCallback(async () => {
     try {
-      setIsLoadingProfitManagers(true)
       const response = await apiRequest<any>(PROFIT_MANAGER_API.getAll())
       const items: ProfitManagerItem[] =
         response?.data?.items || response?.data?.data || response?.data || []
@@ -301,8 +113,6 @@ const NextPurchaseDiscountTable = () => {
         JSON.stringify((error as any)?.response?.data ?? error, null, 2)
       )
       setProfitManagers([])
-    } finally {
-      setIsLoadingProfitManagers(false)
     }
   }, [])
 
@@ -314,31 +124,9 @@ const NextPurchaseDiscountTable = () => {
     fetchProfitManagers()
   }, [fetchProfitManagers])
 
-  /* ── ارسال فرم ── */
-
   const handleSubmit = async (data: FormValues) => {
     try {
       setIsLoading(true)
-
-      // اعتبارسنجی متن‌های پیامک
-      let hasError = false
-
-      if (!data.discount_sms_template.trim()) {
-        methods.setError('discount_sms_template', {
-          type: 'required',
-          message: 'متن پیامک ارسال کد تخفیف الزامی است.',
-        })
-        hasError = true
-      }
-      if (!data.reminder_sms_template.trim()) {
-        methods.setError('reminder_sms_template', {
-          type: 'required',
-          message: 'متن پیامک یادآوری الزامی است.',
-        })
-        hasError = true
-      }
-
-      if (hasError) return
 
       const payload: NextPurchaseDiscountRequestProps = {
         name: data.name,
@@ -351,13 +139,6 @@ const NextPurchaseDiscountTable = () => {
           data.discount_validity_days !== null
             ? Number(data.discount_validity_days)
             : undefined,
-        reminder_days_before_expiration:
-          data.reminder_days_before_expiration !== undefined &&
-          data.reminder_days_before_expiration !== null
-            ? Number(data.reminder_days_before_expiration)
-            : undefined,
-        discount_sms_template: data.discount_sms_template,
-        reminder_sms_template: data.reminder_sms_template,
         profit_manager_ids: data.profit_manager_ids,
         target_customer_types: data.target_customer_types,
         is_active: data.is_active,
@@ -372,8 +153,6 @@ const NextPurchaseDiscountTable = () => {
         methods.reset({
           is_active: true,
           usage_limit: 1,
-          discount_sms_template: '',
-          reminder_sms_template: '',
           profit_manager_ids: [],
           target_customer_types: [],
         } as any)
@@ -406,8 +185,6 @@ const NextPurchaseDiscountTable = () => {
     }
   }
 
-  /* ── حذف ── */
-
   const openDeleteModal = (id: number) => {
     setDeleteId(id)
     deleteDisclosure.onOpen()
@@ -435,13 +212,6 @@ const NextPurchaseDiscountTable = () => {
     }
   }
 
-  /* ── مقادیر محاسباتی برای نمایش ── */
-
-  const discountSmsError =
-    methods.formState.errors.discount_sms_template?.message
-  const reminderSmsError =
-    methods.formState.errors.reminder_sms_template?.message
-
   const profitManagerMap = useMemo(() => {
     const m = new Map<number, string>()
     profitManagers.forEach((pm) =>
@@ -468,13 +238,8 @@ const NextPurchaseDiscountTable = () => {
     return t.map((x) => map[x] || x).join('، ')
   }, [existingDiscount])
 
-  /* ══════════════════════════════════════════════
-     رندر
-     ══════════════════════════════════════════════ */
-
   return (
     <div className="flex flex-col gap-5">
-      {/* ─── فرم ایجاد تنظیمات جدید ─── */}
       {!existingDiscount && (
         <div className="space-y-10">
           <div className="space-y-5">
@@ -487,7 +252,6 @@ const NextPurchaseDiscountTable = () => {
               methods={methods}
               className="grid gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
             >
-              {/* ── فیلدهای اصلی ── */}
               <FormInput<FormValues>
                 name="name"
                 type="text"
@@ -520,34 +284,6 @@ const NextPurchaseDiscountTable = () => {
                 isRequired
               />
 
-              <FormNumberInput<FormValues>
-                name="reminder_days_before_expiration"
-                label="تعداد روز یادآوری قبل از انقضا"
-                description="چند روز قبل از انقضا، پیامک یادآوری ارسال شود"
-                maxLength={3}
-                isRequired
-              />
-
-              {/* ── دکمه‌های تنظیم پیامک ── */}
-              <SmsFieldButton
-                title="تنظیم متن پیامک ارسال کد تخفیف خرید بعدی"
-                preview={discountSmsPreview}
-                emptyText="متن پیامک ارسال کد تخفیف هنوز تنظیم نشده است."
-                onPress={discountSmsDisclosure.onOpen}
-                error={discountSmsError}
-                color="primary"
-              />
-
-              <SmsFieldButton
-                title="تنظیم متن پیامک یادآوری قبل از انقضا"
-                preview={reminderSmsPreview}
-                emptyText="متن پیامک یادآوری هنوز تنظیم نشده است."
-                onPress={reminderSmsDisclosure.onOpen}
-                error={reminderSmsError}
-                color="warning"
-              />
-
-              {/* ── مراکز درآمد (تیک‌زنی) ── */}
               <div className="mt-2 sm:col-span-2 md:col-span-3">
                 <Controller
                   name="profit_manager_ids"
@@ -581,7 +317,6 @@ const NextPurchaseDiscountTable = () => {
                 />
               </div>
 
-              {/* ── نوع مشتری هدف (مقیم / غیرمقیم) ── */}
               <div className="mt-1">
                 <Controller
                   name="target_customer_types"
@@ -612,7 +347,6 @@ const NextPurchaseDiscountTable = () => {
                 />
               </div>
 
-              {/* ── دکمه ثبت ── */}
               <Button
                 color="success"
                 className="text-white"
@@ -629,7 +363,6 @@ const NextPurchaseDiscountTable = () => {
         </div>
       )}
 
-      {/* ─── نمایش تنظیمات موجود ─── */}
       {existingDiscount && (
         <div className="space-y-5">
           <div className="rounded-lg border-2 border-warning-300 bg-warning-50 p-4">
@@ -656,17 +389,8 @@ const NextPurchaseDiscountTable = () => {
                   <th className="p-3 text-right font-semibold">
                     اعتبار تخفیف (روز)
                   </th>
-                  <th className="p-3 text-right font-semibold">
-                    یادآوری قبل از انقضا (روز)
-                  </th>
                   <th className="p-3 text-right font-semibold">مراکز درآمد</th>
                   <th className="p-3 text-right font-semibold">نوع مشتری</th>
-                  <th className="p-3 text-right font-semibold">
-                    متن پیامک تخفیف
-                  </th>
-                  <th className="p-3 text-right font-semibold">
-                    متن پیامک یادآوری
-                  </th>
                   <th className="p-3 text-center font-semibold">عملیات</th>
                 </tr>
               </thead>
@@ -695,26 +419,11 @@ const NextPurchaseDiscountTable = () => {
                       ? `${existingDiscount.discount_validity_days} روز`
                       : '---'}
                   </td>
-                  <td className="p-3 text-default-700">
-                    {existingDiscount?.reminder_days_before_expiration
-                      ? `${existingDiscount.reminder_days_before_expiration} روز`
-                      : '---'}
-                  </td>
                   <td className="min-w-[180px] p-3 text-default-700">
                     {selectedProfitManagersText}
                   </td>
                   <td className="min-w-[140px] p-3 text-default-700">
                     {targetCustomerTypesText}
-                  </td>
-                  <td className="min-w-[260px] whitespace-pre-wrap break-words p-3 text-default-700">
-                    {(existingDiscount as any)?.discount_sms_template?.trim()
-                      ? (existingDiscount as any).discount_sms_template
-                      : '---'}
-                  </td>
-                  <td className="min-w-[260px] whitespace-pre-wrap break-words p-3 text-default-700">
-                    {(existingDiscount as any)?.reminder_sms_template?.trim()
-                      ? (existingDiscount as any).reminder_sms_template
-                      : '---'}
                   </td>
                   <td className="p-3 text-center">
                     <button
@@ -734,37 +443,6 @@ const NextPurchaseDiscountTable = () => {
         </div>
       )}
 
-      {/* ─── مودال‌های پیامک ─── */}
-
-      {/* پیامک ارسال کد تخفیف خرید بعدی */}
-      <SmsTemplateModal
-        isOpen={discountSmsDisclosure.isOpen}
-        onOpenChange={discountSmsDisclosure.onOpenChange}
-        title="تنظیم متن پیامک ارسال کد تخفیف خرید بعدی"
-        helperText="می‌توانید بی‌نهایت متغیر داخل متن قرار دهید."
-        chips={discountSmsChips}
-        chipColor="primary"
-        fieldName="discount_sms_template"
-        control={methods.control}
-        placeholder={`{name} کاربر گرامی\nشماره سفارش شما {order_number}\nکد تخفیف: {discount_ccode}\nمعتبر تا: {expiration_date}`}
-        chipDescriptions={discountSmsChipDescriptions}
-      />
-
-      {/* پیامک یادآوری قبل از انقضا */}
-      <SmsTemplateModal
-        isOpen={reminderSmsDisclosure.isOpen}
-        onOpenChange={reminderSmsDisclosure.onOpenChange}
-        title="تنظیم متن پیامک یادآوری قبل از انقضا"
-        helperText="این پیامک بر اساس تعداد روز یادآوری قبل از انقضا ارسال می‌شود."
-        chips={discountSmsChips}
-        chipColor="warning"
-        fieldName="reminder_sms_template"
-        control={methods.control}
-        placeholder={`{name} عزیز، کد تخفیف {discount_ccode} شما تا {expiration_date} معتبر است. از دست ندهید!`}
-        chipDescriptions={discountSmsChipDescriptions}
-      />
-
-      {/* ─── مودال اطلاعات پس از ایجاد ─── */}
       <Modal
         isOpen={infoDisclosure.isOpen}
         onOpenChange={infoDisclosure.onOpenChange}
@@ -834,17 +512,6 @@ const NextPurchaseDiscountTable = () => {
                     </dd>
                   </div>
 
-                  <div className="flex justify-between">
-                    <dt className="text-small text-default-500">
-                      تعداد روز یادآوری قبل از انقضا
-                    </dt>
-                    <dd className="font-semibold text-default-700">
-                      {existingDiscount?.reminder_days_before_expiration
-                        ? `${existingDiscount.reminder_days_before_expiration} روز`
-                        : '---'}
-                    </dd>
-                  </div>
-
                   <div className="flex flex-col gap-2">
                     <dt className="text-small text-default-500">مراکز درآمد</dt>
                     <dd className="whitespace-pre-wrap break-words font-semibold text-default-700">
@@ -859,41 +526,10 @@ const NextPurchaseDiscountTable = () => {
                     </dd>
                   </div>
 
-                  <div className="flex flex-col gap-2">
-                    <dt className="text-small text-default-500">
-                      متن پیامک ارسال کد تخفیف خرید بعدی
-                    </dt>
-                    <dd className="whitespace-pre-wrap break-words font-semibold text-default-700">
-                      {(existingDiscount as any)?.discount_sms_template?.trim()
-                        ? (existingDiscount as any).discount_sms_template
-                        : '---'}
-                    </dd>
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    <dt className="text-small text-default-500">
-                      متن پیامک یادآوری قبل از انقضا
-                    </dt>
-                    <dd className="whitespace-pre-wrap break-words font-semibold text-default-700">
-                      {(existingDiscount as any)?.reminder_sms_template?.trim()
-                        ? (existingDiscount as any).reminder_sms_template
-                        : '---'}
-                    </dd>
-                  </div>
-
                   <div className="flex justify-between">
                     <dt className="text-small text-default-500">وضعیت</dt>
                     <dd className="font-semibold text-default-700">
                       {existingDiscount?.is_active ? 'فعال' : 'غیرفعال'}
-                    </dd>
-                  </div>
-
-                  <div className="flex justify-between">
-                    <dt className="text-small text-default-500">
-                      محدودیت استفاده
-                    </dt>
-                    <dd className="font-semibold text-default-700">
-                      {existingDiscount?.usage_limit ?? 1}
                     </dd>
                   </div>
                 </dl>
@@ -909,7 +545,6 @@ const NextPurchaseDiscountTable = () => {
         </ModalContent>
       </Modal>
 
-      {/* ─── مودال تایید حذف ─── */}
       <Modal
         isOpen={deleteDisclosure.isOpen}
         onOpenChange={deleteDisclosure.onOpenChange}

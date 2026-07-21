@@ -1,19 +1,8 @@
 'use client'
 
-import {
-  Button,
-  Checkbox,
-  Modal,
-  ModalBody,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-  Textarea,
-  Chip,
-  useDisclosure,
-} from '@heroui/react'
-import { Controller, useForm } from 'react-hook-form'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Button } from '@heroui/react'
+import { useForm } from 'react-hook-form'
+import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'react-toastify'
 
 import FormLayout from '@/app/layout/FormLayout'
@@ -35,8 +24,6 @@ type SettingApiItem = {
   rate_service: string
   created_at: string
   updated_at: string
-  order_complete_sms_template: string
-  send_order_complete_sms: string
 }
 
 type SettingView = {
@@ -45,19 +32,12 @@ type SettingView = {
   rate_service: number
   created_at: string
   updated_at: string
-  order_complete_sms_template: string
-  send_order_complete_sms: boolean
 }
 
 type FormValues = {
   tax: number | string
   rate_service: number | string
-  send_order_complete_sms: boolean
-  order_complete_sms_template: string
 }
-
-const normalizeText = (v: unknown) => (v == null ? '' : String(v)).trim()
-const toBool01 = (v: unknown) => String(v ?? '0') === '1'
 
 const extractSetting = (
   res: ApiEnvelope<SettingApiItem> | null
@@ -77,90 +57,10 @@ const extractSetting = (
     rate_service: Number(raw.rate_service ?? 0),
     created_at: String(raw.created_at ?? ''),
     updated_at: String(raw.updated_at ?? ''),
-    order_complete_sms_template: String(raw.order_complete_sms_template ?? ''),
-    send_order_complete_sms: toBool01(raw.send_order_complete_sms),
   }
 }
 
-const SmsTemplateModal = ({
-  isOpen,
-  onOpenChange,
-  control,
-  chips,
-  chipDescriptions,
-}: {
-  isOpen: boolean
-  onOpenChange: (open: boolean) => void
-  control: any
-  chips: string[]
-  chipDescriptions: Record<string, string>
-}) => (
-  <Modal
-    isOpen={isOpen}
-    onOpenChange={onOpenChange}
-    size="lg"
-    scrollBehavior="inside"
-  >
-    <ModalContent>
-      {(onClose) => (
-        <>
-          <ModalHeader className="flex flex-col gap-1">
-            تنظیم متن پیامک تکمیل سفارش
-          </ModalHeader>
-          <ModalBody className="space-y-3">
-            <div className="flex flex-wrap gap-2">
-              {chips.map((c) => (
-                <Chip key={c} size="sm" variant="flat" color="primary">
-                  {`{${c}}`}
-                </Chip>
-              ))}
-            </div>
-
-            <div className="rounded-lg bg-default-50 px-3 py-2 text-[11px] leading-relaxed text-default-600">
-              <p className="mb-1 font-semibold">توضیح متغیرها:</p>
-              <ul className="space-y-0.5">
-                {chips.map((c) => (
-                  <li key={c}>
-                    <span className="font-semibold">{`{${c}}`}</span> –{' '}
-                    <span>{chipDescriptions[c]}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <Controller
-              name="order_complete_sms_template"
-              control={control}
-              rules={{ required: 'متن پیامک الزامی است.' }}
-              render={({ field, fieldState }) => (
-                <Textarea
-                  {...field}
-                  label="متن پیامک"
-                  minRows={5}
-                  maxRows={10}
-                  placeholder="سلام {name}، سفارش شما به شماره {order_number} آماده شد."
-                  isInvalid={!!fieldState.error}
-                  errorMessage={fieldState.error?.message}
-                />
-              )}
-            />
-          </ModalBody>
-          <ModalFooter>
-            <Button variant="light" onPress={onClose}>
-              بستن
-            </Button>
-            <Button color="primary" onPress={onClose}>
-              تایید
-            </Button>
-          </ModalFooter>
-        </>
-      )}
-    </ModalContent>
-  </Modal>
-)
-
 export default function SettingPage() {
-  const smsModal = useDisclosure()
   const SETTING_ID = 1
 
   const methods = useForm<FormValues>({
@@ -168,28 +68,12 @@ export default function SettingPage() {
     defaultValues: {
       tax: 0,
       rate_service: 0,
-      send_order_complete_sms: false,
-      order_complete_sms_template: '',
     },
   })
 
   const [isLoading, setIsLoading] = useState(false)
   const [isFetching, setIsFetching] = useState(false)
   const [lastSetting, setLastSetting] = useState<SettingView | null>(null)
-
-  const sendSms = methods.watch('send_order_complete_sms')
-  const smsPreview = methods.watch('order_complete_sms_template')
-
-  const chips = useMemo(() => ['name', 'order_number', 'price', 'date'], [])
-  const chipDescriptions = useMemo(
-    () => ({
-      name: 'نام مشتری',
-      order_number: 'شماره سفارش',
-      price: 'مبلغ نهایی (ریال)',
-      date: 'تاریخ تکمیل سفارش',
-    }),
-    []
-  )
 
   const fetchSetting = useCallback(async () => {
     try {
@@ -206,8 +90,6 @@ export default function SettingPage() {
         methods.reset({
           tax: setting.tax,
           rate_service: setting.rate_service,
-          send_order_complete_sms: setting.send_order_complete_sms,
-          order_complete_sms_template: setting.order_complete_sms_template,
         })
       }
     } catch (e) {
@@ -223,29 +105,10 @@ export default function SettingPage() {
     fetchSetting()
   }, [fetchSetting])
 
-  useEffect(() => {
-    if (!sendSms) methods.clearErrors('order_complete_sms_template')
-  }, [sendSms, methods])
-
   const onSubmit = async (form: FormValues) => {
-    if (
-      form.send_order_complete_sms &&
-      !String(form.order_complete_sms_template || '').trim()
-    ) {
-      methods.setError('order_complete_sms_template', {
-        type: 'manual',
-        message: 'متن پیامک الزامی است.',
-      })
-      return
-    }
-
     const payload = {
       tax: Number(form.tax),
       rate_service: Number(form.rate_service),
-      send_order_complete_sms: form.send_order_complete_sms ? 1 : 0,
-      order_complete_sms_template: String(
-        form.order_complete_sms_template ?? ''
-      ),
     }
 
     try {
@@ -296,49 +159,6 @@ export default function SettingPage() {
           isRequired
           maxValue={100}
         />
-        <div className="mt-4">
-          <Controller
-            name="send_order_complete_sms"
-            control={methods.control}
-            render={({ field }) => (
-              <Checkbox
-                isSelected={!!field.value}
-                onValueChange={field.onChange}
-              >
-                ارسال پیامک تکمیل سفارش فعال باشد
-              </Checkbox>
-            )}
-          />
-        </div>
-        <div>
-          <Button
-            type="button"
-            color={
-              methods.formState.errors.order_complete_sms_template
-                ? 'danger'
-                : 'primary'
-            }
-            fullWidth
-            size="lg"
-            radius="sm"
-            onPress={smsModal.onOpen}
-            isDisabled={!sendSms}
-          >
-            تنظیم متن پیامک تکمیل سفارش
-          </Button>
-
-          <p className="mt-2 truncate text-xs text-default-500">
-            {methods.formState.errors.order_complete_sms_template?.message
-              ? String(
-                  methods.formState.errors.order_complete_sms_template?.message
-                )
-              : !sendSms
-                ? 'ارسال پیامک غیرفعال است.'
-                : normalizeText(smsPreview)
-                  ? `پیش‌نمایش: ${normalizeText(smsPreview)}`
-                  : 'متن پیامک هنوز تنظیم نشده است.'}
-          </p>
-        </div>
 
         <Button
           color="success"
@@ -353,14 +173,6 @@ export default function SettingPage() {
         </Button>
       </FormLayout>
 
-      <SmsTemplateModal
-        isOpen={smsModal.isOpen}
-        onOpenChange={smsModal.onOpenChange}
-        control={methods.control}
-        chips={chips}
-        chipDescriptions={chipDescriptions}
-      />
-
       <div className="space-y-3">
         <h2 className="text-lg font-bold text-default-700">
           آخرین تنظیمات ذخیره‌شده
@@ -374,12 +186,8 @@ export default function SettingPage() {
                   <th className="p-3 text-right font-semibold">شناسه</th>
                   <th className="p-3 text-right font-semibold">مالیات (%)</th>
                   <th className="p-3 text-right font-semibold">حق سرویس (%)</th>
-                  <th className="p-3 text-right font-semibold">ارسال پیامک</th>
                   <th className="p-3 text-right font-semibold">
                     آخرین بروزرسانی
-                  </th>
-                  <th className="p-3 text-right font-semibold">
-                    متن قالب پیامک
                   </th>
                 </tr>
               </thead>
@@ -394,15 +202,7 @@ export default function SettingPage() {
                     {Number(lastSetting.rate_service).toLocaleString('fa-IR')}
                   </td>
                   <td className="p-3 text-default-700">
-                    {lastSetting.send_order_complete_sms ? 'فعال' : 'غیرفعال'}
-                  </td>
-                  <td className="p-3 text-default-700">
                     {lastSetting.updated_at ? lastSetting.updated_at : '---'}
-                  </td>
-                  <td className="min-w-[320px] whitespace-pre-wrap break-words p-3 text-default-700">
-                    {lastSetting.order_complete_sms_template?.trim()
-                      ? lastSetting.order_complete_sms_template
-                      : '---'}
                   </td>
                 </tr>
               </tbody>

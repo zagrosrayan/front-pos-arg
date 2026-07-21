@@ -55,17 +55,13 @@ export interface GlobalDiscountResponseProps extends DiscountResponseProps {
   is_unlimited: boolean
 }
 
-export type TargetCustomerType = 'resident' | 'guest'
+export type TargetCustomerType = 'resident' | 'Non_resident' | 'guest'
 
 export interface NextPurchaseDiscountRequestProps {
   name: string
   minimum_purchase_amount: number | string
   discount_percentage: number | string
-  days?: number | string
   discount_validity_days?: number | string
-  reminder_days_before_expiration?: number | string
-  discount_sms_template?: string
-  reminder_sms_template?: string
   profit_manager_ids?: number[]
   target_customer_types?: TargetCustomerType[]
   is_active: boolean
