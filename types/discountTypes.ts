@@ -65,6 +65,7 @@ export interface NextPurchaseDiscountRequestProps {
   profit_manager_ids?: number[]
   target_customer_types?: TargetCustomerType[]
   is_active: boolean
+  sms_enabled?: boolean
   usage_limit?: number
 }
 

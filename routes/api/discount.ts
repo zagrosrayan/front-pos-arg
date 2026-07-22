@@ -53,6 +53,11 @@ export const NEXT_PURCHASE_DISCOUNT_API = {
     method: 'POST',
     data,
   }),
+  update: (id: number, data: any): AxiosRequestConfig => ({
+    url: `/v1/next-purchase-discount/${id}`,
+    method: 'PUT',
+    data,
+  }),
   delete: (id: number): AxiosRequestConfig => ({
     url: `/v1/next-purchase-discount/${id}`,
     method: 'DELETE',

@@ -14,6 +14,7 @@ import {
 } from '@/app/constant/label'
 import FormInput from '@/app/components/ui/FormInput'
 import FormNumberInput from '@/app/components/ui/FormNumberInput'
+import SwitchField from '@/app/components/ui/SwitchField'
 import FormLayout from '@/app/layout/FormLayout'
 import { apiRequest } from '@/lib/axios'
 import { NEXT_PURCHASE_DISCOUNT_API } from '@/routes/api/discount'
@@ -35,10 +36,12 @@ import {
   ModalContent,
   ModalFooter,
   ModalHeader,
+  Switch,
   useDisclosure,
 } from '@heroui/react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
+import { toast } from 'react-toastify'
 
 type TargetCustomerType = 'resident' | 'Non_resident'
 
@@ -57,6 +60,7 @@ const NextPurchaseDiscountTable = () => {
     mode: 'onChange',
     defaultValues: {
       is_active: true,
+      sms_enabled: true,
       usage_limit: 1,
       profit_manager_ids: [],
       target_customer_types: [],
@@ -65,6 +69,7 @@ const NextPurchaseDiscountTable = () => {
 
   const [isLoading, setIsLoading] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isSmsUpdating, setIsSmsUpdating] = useState(false)
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const [existingDiscount, setExistingDiscount] =
     useState<NextPurchaseDiscountResponseProps | null>(null)
@@ -142,6 +147,7 @@ const NextPurchaseDiscountTable = () => {
         profit_manager_ids: data.profit_manager_ids,
         target_customer_types: data.target_customer_types,
         is_active: data.is_active,
+        sms_enabled: data.sms_enabled ?? true,
         usage_limit: 1,
       }
 
@@ -152,6 +158,7 @@ const NextPurchaseDiscountTable = () => {
       if (response) {
         methods.reset({
           is_active: true,
+          sms_enabled: true,
           usage_limit: 1,
           profit_manager_ids: [],
           target_customer_types: [],
@@ -212,6 +219,43 @@ const NextPurchaseDiscountTable = () => {
     }
   }
 
+  const handleSmsToggle = async (enabled: boolean) => {
+    if (!existingDiscount?.id) return
+
+    try {
+      setIsSmsUpdating(true)
+      const response = await apiRequest<any>(
+        NEXT_PURCHASE_DISCOUNT_API.update(existingDiscount.id, {
+          sms_enabled: enabled,
+        })
+      )
+      const updated =
+        response?.data?.items || response?.data?.item || response?.data
+      setExistingDiscount((prev) =>
+        prev
+          ? {
+              ...prev,
+              ...(updated && typeof updated === 'object' ? updated : {}),
+              sms_enabled: enabled,
+            }
+          : prev
+      )
+      toast.success(
+        enabled
+          ? 'ارسال پیامک تخفیف فعال شد'
+          : 'ارسال پیامک تخفیف غیرفعال شد (خود تخفیف فعال می‌ماند)'
+      )
+    } catch (error) {
+      console.error(
+        'SMS toggle error:',
+        JSON.stringify((error as any)?.response?.data ?? error, null, 2)
+      )
+      toast.error('خطا در تغییر وضعیت پیامک')
+    } finally {
+      setIsSmsUpdating(false)
+    }
+  }
+
   const profitManagerMap = useMemo(() => {
     const m = new Map<number, string>()
     profitManagers.forEach((pm) =>
@@ -243,9 +287,9 @@ const NextPurchaseDiscountTable = () => {
       <div className="rounded-lg border border-primary-200 bg-primary-50 p-4 text-sm text-primary-800">
         <p className="font-semibold">ارسال پیامک خودکار</p>
         <p className="mt-1 leading-6">
-          با تکمیل سفارش و صدور تخفیف خرید بعدی، پیامک پترن تخفیف بلافاصله برای
-          مشتری ارسال می‌شود. پیامک یادآوری انقضا نیز ۴ روز قبل از پایان اعتبار
-          به‌صورت خودکار فرستاده می‌شود. تنظیم متن/قالب پیامک از پنل لازم نیست.
+          اگر گزینه پیامک روشن باشد، با صدور تخفیف خرید بعدی پیامک فوری و
+          یادآوری انقضا خودکار ارسال می‌شود. خاموش کردن پیامک فقط ارسال را قطع
+          می‌کند و خود تخفیف فعال می‌ماند.
         </p>
       </div>
 
@@ -356,6 +400,15 @@ const NextPurchaseDiscountTable = () => {
                 />
               </div>
 
+              <div className="mt-1 sm:col-span-2 md:col-span-3 lg:col-span-4">
+                <SwitchField<FormValues>
+                  name="sms_enabled"
+                  label="ارسال پیامک تخفیف خرید بعدی"
+                  activeLabel="روشن"
+                  deactivateLabel="خاموش"
+                />
+              </div>
+
               <Button
                 color="success"
                 className="text-white"
@@ -380,9 +433,28 @@ const NextPurchaseDiscountTable = () => {
               را حذف کنید .
             </p>
             <p className="mt-2 text-sm text-warning-700">
-              پیامک تخفیف خرید بعدی هنگام تکمیل سفارش بلافاصله ارسال می‌شود؛
-              یادآوری انقضا ۴ روز قبل از باطل شدن اعتبار خودکار است.
+              وضعیت پیامک را از سوییچ زیر می‌توانید تغییر دهید؛ خاموش بودن آن
+              باعث غیرفعال شدن خود تخفیف نمی‌شود.
             </p>
+          </div>
+
+          <div className="flex max-w-md items-center justify-between rounded-lg border-2 border-default-100 bg-content1 p-4">
+            <div>
+              <p className="font-semibold text-default-700">
+                ارسال پیامک تخفیف خرید بعدی
+              </p>
+              <p className="text-small text-default-500">
+                {existingDiscount.sms_enabled !== false
+                  ? 'پیامک هنگام صدور تخفیف ارسال می‌شود'
+                  : 'پیامک ارسال نمی‌شود؛ تخفیف همچنان صادر می‌شود'}
+              </p>
+            </div>
+            <Switch
+              isSelected={existingDiscount.sms_enabled !== false}
+              isDisabled={isSmsUpdating}
+              onValueChange={handleSmsToggle}
+              aria-label="ارسال پیامک تخفیف خرید بعدی"
+            />
           </div>
 
           <h2 className="text-xl font-bold text-default-700">
@@ -404,6 +476,7 @@ const NextPurchaseDiscountTable = () => {
                   </th>
                   <th className="p-3 text-right font-semibold">مراکز درآمد</th>
                   <th className="p-3 text-right font-semibold">نوع مشتری</th>
+                  <th className="p-3 text-right font-semibold">پیامک</th>
                   <th className="p-3 text-center font-semibold">عملیات</th>
                 </tr>
               </thead>
@@ -437,6 +510,9 @@ const NextPurchaseDiscountTable = () => {
                   </td>
                   <td className="min-w-[140px] p-3 text-default-700">
                     {targetCustomerTypesText}
+                  </td>
+                  <td className="p-3 text-default-700">
+                    {existingDiscount?.sms_enabled !== false ? 'روشن' : 'خاموش'}
                   </td>
                   <td className="p-3 text-center">
                     <button
@@ -546,11 +622,20 @@ const NextPurchaseDiscountTable = () => {
                     </dd>
                   </div>
 
-                  <div className="flex flex-col gap-2 border-t border-default-100 pt-3">
+                  <div className="flex justify-between">
                     <dt className="text-small text-default-500">پیامک</dt>
+                    <dd className="font-semibold text-default-700">
+                      {existingDiscount?.sms_enabled !== false
+                        ? 'روشن'
+                        : 'خاموش'}
+                    </dd>
+                  </div>
+
+                  <div className="flex flex-col gap-2 border-t border-default-100 pt-3">
+                    <dt className="text-small text-default-500">توضیح</dt>
                     <dd className="text-small leading-6 text-default-700">
-                      پس از تکمیل سفارش، پیامک تخفیف فوری و یادآوری انقضا خودکار
-                      ارسال می‌شود.
+                      خاموش بودن پیامک فقط ارسال را متوقف می‌کند؛ تخفیف همچنان
+                      صادر می‌شود.
                     </dd>
                   </div>
                 </dl>
