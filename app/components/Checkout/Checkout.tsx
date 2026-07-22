@@ -662,7 +662,6 @@ const Checkout = ({ className }: CheckoutProps) => {
       }))
 
       const payload = buildOrderPayload(data, order)
-      payload.send_sms = true
 
       const response = await apiRequest(ORDER_API.updateById(payload), {
         order: orderId,
@@ -719,7 +718,6 @@ const Checkout = ({ className }: CheckoutProps) => {
       }))
 
       const payload = buildOrderPayload(data, order)
-      payload.send_sms = false
 
       const response = await apiRequest(ORDER_API.create(payload))
       toast.success(response?.message || 'سفارش با موفقیت ثبت شد')

@@ -240,6 +240,15 @@ const NextPurchaseDiscountTable = () => {
 
   return (
     <div className="flex flex-col gap-5">
+      <div className="rounded-lg border border-primary-200 bg-primary-50 p-4 text-sm text-primary-800">
+        <p className="font-semibold">ارسال پیامک خودکار</p>
+        <p className="mt-1 leading-6">
+          با تکمیل سفارش و صدور تخفیف خرید بعدی، پیامک پترن تخفیف بلافاصله برای
+          مشتری ارسال می‌شود. پیامک یادآوری انقضا نیز ۴ روز قبل از پایان اعتبار
+          به‌صورت خودکار فرستاده می‌شود. تنظیم متن/قالب پیامک از پنل لازم نیست.
+        </p>
+      </div>
+
       {!existingDiscount && (
         <div className="space-y-10">
           <div className="space-y-5">
@@ -369,6 +378,10 @@ const NextPurchaseDiscountTable = () => {
             <p className="text-warning-700">
               یک تنظیمات فعال دارید . برای تعریف تنظیمات جدید لطفا تنظیمات قبلی
               را حذف کنید .
+            </p>
+            <p className="mt-2 text-sm text-warning-700">
+              پیامک تخفیف خرید بعدی هنگام تکمیل سفارش بلافاصله ارسال می‌شود؛
+              یادآوری انقضا ۴ روز قبل از باطل شدن اعتبار خودکار است.
             </p>
           </div>
 
@@ -530,6 +543,14 @@ const NextPurchaseDiscountTable = () => {
                     <dt className="text-small text-default-500">وضعیت</dt>
                     <dd className="font-semibold text-default-700">
                       {existingDiscount?.is_active ? 'فعال' : 'غیرفعال'}
+                    </dd>
+                  </div>
+
+                  <div className="flex flex-col gap-2 border-t border-default-100 pt-3">
+                    <dt className="text-small text-default-500">پیامک</dt>
+                    <dd className="text-small leading-6 text-default-700">
+                      پس از تکمیل سفارش، پیامک تخفیف فوری و یادآوری انقضا خودکار
+                      ارسال می‌شود.
                     </dd>
                   </div>
                 </dl>
