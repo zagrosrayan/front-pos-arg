@@ -98,30 +98,26 @@ const Page = () => {
         <div className="flex w-full flex-col gap-5">
           {orderData && <OrderDetailTable orderData={orderData} />}
           <div className="hidden gap-3 xl:flex">
-            {orderData?.status?.slug === 'order-status-complete' && (
-              <Button
-                variant="ghost"
-                onPress={handlePrintOrder}
-                isLoading={isPrintLoading}
-              >
-                {RE_PRINT_LABEL}
-              </Button>
-            )}
-            {orderData?.status?.slug !== 'order-status-complete' && (
-              <Button
-                variant="ghost"
-                onPress={() => {
-                  const invoiceWindow = window.open('../../invoice', '_blank')
-                  if (invoiceWindow)
-                    setTimeout(() => {
-                      invoiceWindow.postMessage(orderData, '*')
-                    }, 2000)
-                }}
-                isLoading={isPrintLoading}
-              >
-                {PRE_PRINT_LABEL}
-              </Button>
-            )}
+            <Button
+              variant="ghost"
+              onPress={handlePrintOrder}
+              isLoading={isPrintLoading}
+            >
+              {RE_PRINT_LABEL}
+            </Button>
+            <Button
+              variant="ghost"
+              onPress={() => {
+                const invoiceWindow = window.open('../../invoice', '_blank')
+                if (invoiceWindow)
+                  setTimeout(() => {
+                    invoiceWindow.postMessage(orderData, '*')
+                  }, 2000)
+              }}
+              isLoading={isPrintLoading}
+            >
+              {PRE_PRINT_LABEL}
+            </Button>
           </div>
         </div>
 
@@ -221,30 +217,26 @@ const Page = () => {
           </dl>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row xl:hidden">
-          {orderData?.status?.slug === 'order-status-complete' && (
-            <Button
-              variant="ghost"
-              onPress={handlePrintOrder}
-              isLoading={isPrintLoading}
-            >
-              {RE_PRINT_LABEL}
-            </Button>
-          )}
-          {orderData?.status?.slug !== 'order-status-complete' && (
-            <Button
-              variant="ghost"
-              onPress={() => {
-                const invoiceWindow = window.open('../../invoice', '_blank')
-                if (invoiceWindow)
-                  setTimeout(() => {
-                    invoiceWindow.postMessage(orderData, '*')
-                  }, 2000)
-              }}
-              isLoading={isPrintLoading}
-            >
-              {PRE_PRINT_LABEL}
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            onPress={handlePrintOrder}
+            isLoading={isPrintLoading}
+          >
+            {RE_PRINT_LABEL}
+          </Button>
+          <Button
+            variant="ghost"
+            onPress={() => {
+              const invoiceWindow = window.open('../../invoice', '_blank')
+              if (invoiceWindow)
+                setTimeout(() => {
+                  invoiceWindow.postMessage(orderData, '*')
+                }, 2000)
+            }}
+            isLoading={isPrintLoading}
+          >
+            {PRE_PRINT_LABEL}
+          </Button>
         </div>
       </div>
     </div>

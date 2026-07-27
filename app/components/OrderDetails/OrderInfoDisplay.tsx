@@ -215,26 +215,22 @@ const OrderInfoDisplay = ({
             </Button>
           )}
 
-          {/* بعد از تایید نهایی حتماً چاپ مجدد */}
-          {orderData?.status.slug === completeOrderSlug && (
-            <Button
-              variant="ghost"
-              onPress={onReprintClick}
-              isLoading={isPrintLoading && activePrintAction === 'reprint'}
-            >
-              {RE_PRINT_LABEL}
-            </Button>
-          )}
+          {/* چاپ مجدد و پیش‌فاکتور: قبل و بعد از ثبت نهایی */}
+          <Button
+            variant="ghost"
+            onPress={onReprintClick}
+            isLoading={isPrintLoading && activePrintAction === 'reprint'}
+          >
+            {RE_PRINT_LABEL}
+          </Button>
 
-          {orderData?.status.slug !== completeOrderSlug && (
-            <Button
-              variant="ghost"
-              onPress={onPreprintClick}
-              isLoading={isPrintLoading && activePrintAction === 'preprint'}
-            >
-              {PRE_PRINT_LABEL}
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            onPress={onPreprintClick}
+            isLoading={isPrintLoading && activePrintAction === 'preprint'}
+          >
+            {PRE_PRINT_LABEL}
+          </Button>
 
           {orderData?.status.slug !== completeOrderSlug && (
             <Button
@@ -493,26 +489,22 @@ const OrderInfoDisplay = ({
             </Button>
           )}
 
-          {/* بعد از تایید نهایی حتماً چاپ مجدد */}
-          {orderData?.status.slug === completeOrderSlug && (
-            <Button
-              variant="ghost"
-              onPress={onReprintClick}
-              isLoading={isPrintLoading && activePrintAction === 'reprint'}
-            >
-              {RE_PRINT_LABEL}
-            </Button>
-          )}
+          {/* چاپ مجدد و پیش‌فاکتور: قبل و بعد از ثبت نهایی */}
+          <Button
+            variant="ghost"
+            onPress={onReprintClick}
+            isLoading={isPrintLoading && activePrintAction === 'reprint'}
+          >
+            {RE_PRINT_LABEL}
+          </Button>
 
-          {orderData?.status.slug !== completeOrderSlug && (
-            <Button
-              variant="ghost"
-              onPress={onPreprintClick}
-              isLoading={isPrintLoading && activePrintAction === 'preprint'}
-            >
-              {PRE_PRINT_LABEL}
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            onPress={onPreprintClick}
+            isLoading={isPrintLoading && activePrintAction === 'preprint'}
+          >
+            {PRE_PRINT_LABEL}
+          </Button>
 
           {orderData?.status.slug !== completeOrderSlug && (
             <Button
