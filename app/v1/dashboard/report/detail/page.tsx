@@ -98,13 +98,15 @@ const Page = () => {
         <div className="flex w-full flex-col gap-5">
           {orderData && <OrderDetailTable orderData={orderData} />}
           <div className="hidden gap-3 xl:flex">
-            <Button
-              variant="ghost"
-              onPress={handlePrintOrder}
-              isLoading={isPrintLoading}
-            >
-              {RE_PRINT_LABEL}
-            </Button>
+            {orderData?.status?.slug !== 'order-status-complete' && (
+              <Button
+                variant="ghost"
+                onPress={handlePrintOrder}
+                isLoading={isPrintLoading}
+              >
+                {RE_PRINT_LABEL}
+              </Button>
+            )}
             <Button
               variant="ghost"
               onPress={() => {
@@ -217,13 +219,15 @@ const Page = () => {
           </dl>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row xl:hidden">
-          <Button
-            variant="ghost"
-            onPress={handlePrintOrder}
-            isLoading={isPrintLoading}
-          >
-            {RE_PRINT_LABEL}
-          </Button>
+          {orderData?.status?.slug !== 'order-status-complete' && (
+            <Button
+              variant="ghost"
+              onPress={handlePrintOrder}
+              isLoading={isPrintLoading}
+            >
+              {RE_PRINT_LABEL}
+            </Button>
+          )}
           <Button
             variant="ghost"
             onPress={() => {

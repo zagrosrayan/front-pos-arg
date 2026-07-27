@@ -131,10 +131,15 @@ const CompleteOrderModal = ({
 
   const isResidentTab = tabSelected === 'resident' || tabSelected === 'employee'
 
-  const isResidentUserPayment = useMemo(() => {
-    const slug = paymentMethods?.filter((x) => x.id == paymentMethod)?.[0]?.slug
-    return isResidentPayment(slug)
+  const selectedPaymentSlug = useMemo(() => {
+    return paymentMethods?.find((x) => String(x.id) === String(paymentMethod))
+      ?.slug
   }, [paymentMethods, paymentMethod])
+
+  const isResidentUserPayment = isResidentPayment(selectedPaymentSlug)
+
+  /** وقتی مهمان مقیم انتخاب شود، نقدی و پوزها غیرفعال شوند */
+  const shouldDisableCashAndPos = isResidentTab || isResidentUserPayment
 
   /** در تب مقیم فقط روش پرداخت مهمان مقیم فعال باشد */
   useEffect(() => {
@@ -143,10 +148,15 @@ const CompleteOrderModal = ({
     const residentMethod = paymentMethods.find((item) =>
       isResidentPayment(item.slug)
     )
-    const currentSlug = paymentMethods.find((x) => x.id == paymentMethod)?.slug
+    const currentSlug = paymentMethods.find(
+      (x) => String(x.id) === String(paymentMethod)
+    )?.slug
 
     if (isResidentTab) {
-      if (residentMethod && String(paymentMethod) !== String(residentMethod.id)) {
+      if (
+        residentMethod &&
+        String(paymentMethod) !== String(residentMethod.id)
+      ) {
         methods.setValue('payment_method', String(residentMethod.id) as any, {
           shouldDirty: true,
           shouldValidate: true,
@@ -559,7 +569,8 @@ const CompleteOrderModal = ({
                     >
                       {paymentMethods.map((item, index) => {
                         const disabledByResident =
-                          isResidentTab && isCashOrPosPayment(item.slug)
+                          shouldDisableCashAndPos &&
+                          isCashOrPosPayment(item.slug)
                         const disabledByGuest =
                           !isResidentTab && isResidentPayment(item.slug)
 
@@ -569,6 +580,11 @@ const CompleteOrderModal = ({
                             key={index}
                             value={String(item.id)}
                             isDisabled={disabledByResident || disabledByGuest}
+                            className={
+                              disabledByResident || disabledByGuest
+                                ? 'opacity-40 pointer-events-none'
+                                : undefined
+                            }
                           >
                             {item.name}
                           </CustomRadio>

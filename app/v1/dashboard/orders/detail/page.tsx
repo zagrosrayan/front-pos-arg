@@ -586,10 +586,30 @@ const Page = () => {
   const handlePrintOrder = async () => {
     try {
       setIsPrintLoading(true)
-      const response = await apiRequest<Data>(PRINTER_API.printInvoice(), {
-        order: orderId,
-      })
-      toast.success(response?.message)
+
+      // روی لوکال ابتدا فاکتور را در مرورگر باز کن (چاپ فیزیکی لینوکسی در دسترس نیست)
+      if (orderData) {
+        const discountInfo = resolveDiscountTypeLabelFromOrder(orderData)
+        postToInvoice({
+          ...orderData,
+          discount_type_label: discountInfo.label,
+          discount_is_expired: discountInfo.isExpired,
+          discount_code_value: resolveDiscountCodeFromOrder(orderData),
+          __print_token: String(
+            orderData.invoice_number ?? orderData.id ?? Date.now()
+          ),
+        })
+      }
+
+      try {
+        const response = await apiRequest<Data>(PRINTER_API.printInvoice(), {
+          order: orderId,
+        })
+        toast.success(response?.message || 'فاکتور برای چاپ ارسال شد')
+      } catch (apiError) {
+        console.error(apiError)
+        toast.info('فاکتور در مرورگر باز شد (چاپ فیزیکی در دسترس نیست)')
+      }
     } catch (error) {
       console.error(error)
     } finally {

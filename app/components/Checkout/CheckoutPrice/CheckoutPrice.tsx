@@ -92,17 +92,15 @@ const CheckoutPrice = ({ orderData, simple = false }: Props) => {
             <span className="font-semibold">ریال</span>
           </dd>
         </div>
-        {orderData.discounted_price && (
-          <div className="flex justify-between">
-            <dt className="text-small text-default-500">تخفیف</dt>
-            <dd className="flex gap-1 text-small font-semibold text-default-700">
-              <span className="font-semibold">
-                {Number(orderData?.discounted_price).toLocaleString('fa-IR')}
-              </span>
-              <span className="font-semibold">ریال</span>
-            </dd>
-          </div>
-        )}
+        <div className="flex justify-between">
+          <dt className="text-small text-default-500">تخفیف</dt>
+          <dd className="flex gap-1 text-small font-semibold text-default-700">
+            <span className="font-semibold">
+              {Number(orderData?.discounted_price ?? 0).toLocaleString('fa-IR')}
+            </span>
+            <span className="font-semibold">ریال</span>
+          </dd>
+        </div>
         <div className="flex justify-between">
           <dt className="text-small text-default-500">{SERVICE_COST_LABEL}</dt>
           <dd className="flex gap-1 text-small font-semibold text-default-700">

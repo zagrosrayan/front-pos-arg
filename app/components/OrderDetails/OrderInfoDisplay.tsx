@@ -215,7 +215,8 @@ const OrderInfoDisplay = ({
             </Button>
           )}
 
-          {orderData?.status.slug === completeOrderSlug && (
+          {/* بعد از تایید نهایی چاپ مجدد نداریم */}
+          {orderData?.status.slug !== completeOrderSlug && (
             <Button
               variant="ghost"
               onPress={onReprintClick}
@@ -225,15 +226,13 @@ const OrderInfoDisplay = ({
             </Button>
           )}
 
-          {orderData?.status.slug !== completeOrderSlug && (
-            <Button
-              variant="ghost"
-              onPress={onPreprintClick}
-              isLoading={isPrintLoading && activePrintAction === 'preprint'}
-            >
-              {PRE_PRINT_LABEL}
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            onPress={onPreprintClick}
+            isLoading={isPrintLoading && activePrintAction === 'preprint'}
+          >
+            {PRE_PRINT_LABEL}
+          </Button>
 
           {orderData?.status.slug !== completeOrderSlug && (
             <Button
@@ -492,7 +491,8 @@ const OrderInfoDisplay = ({
             </Button>
           )}
 
-          {orderData?.status.slug === completeOrderSlug && (
+          {/* بعد از تایید نهایی چاپ مجدد نداریم */}
+          {orderData?.status.slug !== completeOrderSlug && (
             <Button
               variant="ghost"
               onPress={onReprintClick}
@@ -502,15 +502,13 @@ const OrderInfoDisplay = ({
             </Button>
           )}
 
-          {orderData?.status.slug !== completeOrderSlug && (
-            <Button
-              variant="ghost"
-              onPress={onPreprintClick}
-              isLoading={isPrintLoading && activePrintAction === 'preprint'}
-            >
-              {PRE_PRINT_LABEL}
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            onPress={onPreprintClick}
+            isLoading={isPrintLoading && activePrintAction === 'preprint'}
+          >
+            {PRE_PRINT_LABEL}
+          </Button>
 
           {orderData?.status.slug !== completeOrderSlug && (
             <Button

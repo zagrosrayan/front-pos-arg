@@ -40,8 +40,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="fa" dir="rtl">
-      <body className={iranSans.className}>
+    <html lang="fa" dir="rtl" suppressHydrationWarning>
+      <body className={iranSans.className} suppressHydrationWarning>
         <Providers>{children}</Providers>
       </body>
     </html>

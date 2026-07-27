@@ -154,9 +154,9 @@ const Page = () => {
   const hasPrintedRef = useRef(false)
   const lastTokenRef = useRef<string | null>(null)
 
-  const expectedOrigin = useMemo(() => window.location.origin, [])
-
   useEffect(() => {
+    const expectedOrigin = window.location.origin
+
     const onMessage = (event: MessageEvent) => {
       if (event.origin !== expectedOrigin) return
 
@@ -176,7 +176,7 @@ const Page = () => {
 
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
-  }, [expectedOrigin])
+  }, [])
 
   useEffect(() => {
     if (!orderData) return

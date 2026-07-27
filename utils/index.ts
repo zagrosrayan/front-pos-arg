@@ -73,16 +73,27 @@ const fallbackCopy = (text: string): void => {
 
 // utils/copyToClipboard.ts
 export const copyToClipboard = async (text: string): Promise<void> => {
-  // Check if the Clipboard API is available
+  const value = String(text ?? '')
+  if (!value) return
+
   try {
-    if (navigator.clipboard) {
-      await navigator.clipboard.writeText(text)
-    } else {
-      // Fallback method
-      fallbackCopy(text)
+    if (
+      typeof navigator !== 'undefined' &&
+      navigator.clipboard &&
+      typeof navigator.clipboard.writeText === 'function' &&
+      window.isSecureContext
+    ) {
+      await navigator.clipboard.writeText(value)
+      return
     }
   } catch (err) {
     console.error('Failed to copy using Clipboard API:', err)
+  }
+
+  try {
+    fallbackCopy(value)
+  } catch (err) {
+    console.error('Copy to clipboard is not supported in this browser', err)
   }
 }
 
