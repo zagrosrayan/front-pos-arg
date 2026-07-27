@@ -2,7 +2,7 @@
 
 'use client'
 
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import {
   Modal,
   ModalContent,
@@ -43,7 +43,6 @@ import ResidentSelectionSection from './ResidentSelectionSection'
 import { UseFormReturn } from 'react-hook-form'
 import { OrderRequestProps } from '@/types/orderType'
 import { TypeResponseProps } from '@/types/typeTypes'
-import CheckoutDiscountSection from '@/app/components/Checkout/CheckoutDiscountSection'
 
 /* ═══════════════════════════════════════════════════════════════
    تایپ‌ها
@@ -81,21 +80,22 @@ interface CompleteOrderModalProps {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   ثابت‌ها و توابع کمکی
+   توابع کمکی
    ═══════════════════════════════════════════════════════════════ */
-
-const EXPIRED_TOKEN = '|expired'
-const EXPIRED_UI_MESSAGE = 'این تخفیف منقضی شده است.'
-
-const hasExpiredTag = (msg?: unknown) => {
-  if (!msg) return false
-  return String(msg).includes(EXPIRED_TOKEN)
-}
 
 /** بررسی انقضای تخفیف */
 const isDiscountExpired = (expiresAt: string | null | undefined): boolean => {
   if (!expiresAt) return false
   return new Date(expiresAt) < new Date()
+}
+
+const isCashOrPosPayment = (slug?: string | null) => {
+  if (!slug) return false
+  return slug === 'payment-method-cash' || slug.includes('pos')
+}
+
+const isResidentPayment = (slug?: string | null) => {
+  return slug === 'payment-method-resident-user'
 }
 
 const CompleteOrderModal = ({
@@ -117,125 +117,6 @@ const CompleteOrderModal = ({
   setSelectedCustomer,
   discountDisplayInfo,
 }: CompleteOrderModalProps) => {
-  const [hasDiscount, setHasDiscount] = useState(false)
-  const [selectedDiscountOption, setSelectedDiscountOption] =
-    useState<any>(null)
-  const [expiredDiscountMessage, setExpiredDiscountMessage] =
-    useState<string>('')
-
-  const selectedDiscountType = methods.watch('selected_discount_type') as any
-  const discountNormalCode = methods.watch('discount_normal_code') as any
-  const discountGlobalCode = methods.watch('discount_global_code') as any
-  const discountValue = methods.watch('discount_value') as any
-  const useClubPoints = methods.watch('use_club_points') as any
-  const useNextPurchaseDiscount = methods.watch(
-    'use_next_purchase_discount'
-  ) as any
-
-  const computedHasDiscount = useMemo(() => {
-    return (
-      Boolean(String(selectedDiscountType ?? '').trim()) ||
-      Boolean(discountNormalCode) ||
-      Boolean(discountGlobalCode) ||
-      Boolean(Number(discountValue ?? 0) > 0) ||
-      Boolean(useClubPoints) ||
-      Boolean(useNextPurchaseDiscount)
-    )
-  }, [
-    selectedDiscountType,
-    discountNormalCode,
-    discountGlobalCode,
-    discountValue,
-    useClubPoints,
-    useNextPurchaseDiscount,
-  ])
-
-  useEffect(() => {
-    if (!isOpen) return
-    setHasDiscount(computedHasDiscount)
-
-    // اگر discountDisplayInfo منقضی شده باشد، پیام نمایش بده
-    if (discountDisplayInfo?.isExpired) {
-      setExpiredDiscountMessage(EXPIRED_UI_MESSAGE)
-    }
-  }, [isOpen, computedHasDiscount, discountDisplayInfo])
-
-  useEffect(() => {
-    if (computedHasDiscount) setHasDiscount(true)
-  }, [computedHasDiscount])
-
-  useEffect(() => {
-    if (!isOpen) return
-
-    const t = String(selectedDiscountType ?? '').trim()
-    if (t === '1' && discountNormalCode) {
-      setSelectedDiscountOption({
-        value: discountNormalCode,
-        label: String(discountNormalCode),
-        data: { code: discountNormalCode },
-      })
-      return
-    }
-
-    if (t === '3' && discountGlobalCode) {
-      setSelectedDiscountOption({
-        value: discountGlobalCode,
-        label: String(discountGlobalCode),
-        data: { code: discountGlobalCode },
-      })
-      return
-    }
-
-    setSelectedDiscountOption(null)
-  }, [isOpen, selectedDiscountType, discountNormalCode, discountGlobalCode])
-
-  // ---- detect "|expired" in form errors; show warning & clear errors to not block submit
-  const errorsHash = useMemo(() => {
-    try {
-      return JSON.stringify(methods.formState.errors ?? {})
-    } catch {
-      return String(Date.now())
-    }
-  }, [methods.formState.errors])
-
-  useEffect(() => {
-    if (!isOpen) return
-    if (!hasDiscount) {
-      // اگر discountDisplayInfo منقضی نشده باشد، پیام رو پاک کن
-      if (!discountDisplayInfo?.isExpired) {
-        setExpiredDiscountMessage('')
-      }
-      return
-    }
-
-    const err: any = methods.formState.errors as any
-    const candidates: Array<[string, any]> = [
-      ['selected_discount_type', err?.selected_discount_type?.message],
-      ['discount_normal_code', err?.discount_normal_code?.message],
-      ['discount_global_code', err?.discount_global_code?.message],
-      ['discount_value', err?.discount_value?.message],
-      ['use_next_purchase_discount', err?.use_next_purchase_discount?.message],
-      ['use_club_points', err?.use_club_points?.message],
-    ]
-
-    const expiredFields = candidates
-      .filter(([, m]) => hasExpiredTag(m))
-      .map(([f]) => f)
-
-    if (expiredFields.length > 0) {
-      setExpiredDiscountMessage(EXPIRED_UI_MESSAGE)
-      methods.clearErrors(expiredFields as any)
-      return
-    }
-
-    // اگر discountDisplayInfo منقضی نشده باشد، پیام رو پاک کن
-    if (!discountDisplayInfo?.isExpired) {
-      setExpiredDiscountMessage('')
-    }
-  }, [errorsHash, isOpen, hasDiscount, discountDisplayInfo])
-
-  const discountType = String(selectedDiscountType ?? '').trim() || undefined
-
   const buildCustomerSelectValue = (mode: 'name' | 'phone'): SelectOption => {
     if (!selectedCustomer) return null
     return {
@@ -248,10 +129,48 @@ const CompleteOrderModal = ({
     }
   }
 
+  const isResidentTab = tabSelected === 'resident' || tabSelected === 'employee'
+
   const isResidentUserPayment = useMemo(() => {
     const slug = paymentMethods?.filter((x) => x.id == paymentMethod)?.[0]?.slug
-    return slug === 'payment-method-resident-user'
+    return isResidentPayment(slug)
   }, [paymentMethods, paymentMethod])
+
+  /** در تب مقیم فقط روش پرداخت مهمان مقیم فعال باشد */
+  useEffect(() => {
+    if (!isOpen || !paymentMethods?.length) return
+
+    const residentMethod = paymentMethods.find((item) =>
+      isResidentPayment(item.slug)
+    )
+    const currentSlug = paymentMethods.find((x) => x.id == paymentMethod)?.slug
+
+    if (isResidentTab) {
+      if (residentMethod && String(paymentMethod) !== String(residentMethod.id)) {
+        methods.setValue('payment_method', String(residentMethod.id) as any, {
+          shouldDirty: true,
+          shouldValidate: true,
+        })
+      }
+      return
+    }
+
+    // در تب مهمان عادی، اگر مهمان مقیم انتخاب شده بود به نقدی برگرد
+    if (isResidentPayment(currentSlug)) {
+      const cashMethod = paymentMethods.find(
+        (item) => item.slug === 'payment-method-cash'
+      )
+      const fallback =
+        cashMethod ||
+        paymentMethods.find((item) => !isResidentPayment(item.slug))
+      if (fallback) {
+        methods.setValue('payment_method', String(fallback.id) as any, {
+          shouldDirty: true,
+          shouldValidate: true,
+        })
+      }
+    }
+  }, [isOpen, isResidentTab, paymentMethods, paymentMethod, methods])
 
   /** فرمت نمایش مشتری با اطلاعات تخفیف */
   const formatCustomerOption = (option: any, mode: 'name' | 'phone') => {
@@ -315,18 +234,7 @@ const CompleteOrderModal = ({
             </ModalHeader>
 
             <ModalBody className="w-full">
-              {/* هشدار تخفیف منقضی شده */}
-              {discountDisplayInfo?.isExpired && (
-                <div className="mb-4 rounded-lg border-2 border-danger-300 bg-danger-50 p-3">
-                  <p className="text-sm font-semibold text-danger-700">
-                    ⚠️ کد تخفیف "
-                    {discountDisplayInfo.code || discountDisplayInfo.typeLabel}"
-                    منقضی شده است و در ثبت نهایی اعمال نخواهد شد.
-                  </p>
-                </div>
-              )}
-
-              {/* نمایش اطلاعات تخفیف فعلی */}
+              {/* نمایش اطلاعات تخفیف فعلی (فقط خواندنی؛ ویرایش در پیش‌فاکتور) */}
               {discountDisplayInfo &&
                 discountDisplayInfo.typeLabel !== 'بدون تخفیف' && (
                   <div
@@ -339,7 +247,7 @@ const CompleteOrderModal = ({
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-semibold">
-                        تخفیف اعمال شده:
+                        تخفیف اعمال‌شده (از پیش‌فاکتور):
                       </span>
                       <div className="flex items-center gap-2">
                         <Chip
@@ -379,15 +287,6 @@ const CompleteOrderModal = ({
                         ریال
                       </p>
                     )}
-                    {discountDisplayInfo.isExpired &&
-                      discountDisplayInfo.expiresAt && (
-                        <p className="mt-1 text-xs text-danger-500">
-                          تاریخ انقضا:{' '}
-                          {new Date(
-                            discountDisplayInfo.expiresAt
-                          ).toLocaleDateString('fa-IR')}
-                        </p>
-                      )}
                   </div>
                 )}
 
@@ -403,32 +302,7 @@ const CompleteOrderModal = ({
                   title={RESIDENT_CUSTOMER}
                   className="flex flex-col gap-y-3"
                 >
-                  {!isResidentUserPayment ? (
-                    <div className="flex flex-col gap-y-3">
-                      <FormInput<OrderRequestProps>
-                        name="name"
-                        label={NAME_LABEL}
-                        rules={{ required: 'نام مشتری الزامی است' }}
-                      />
-
-                      <FormInput<OrderRequestProps>
-                        name="phone"
-                        label={PHONE_LABEL}
-                        type="number"
-                        maxLength={11}
-                        rules={{
-                          required: 'شماره تلفن الزامی است.',
-                          pattern: {
-                            value: /^09\d{9}$/,
-                            message:
-                              'شماره تلفن باید با 09 شروع شده و 11 رقم باشد.',
-                          },
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    <ResidentSelectionSection {...residentSelectProps} />
-                  )}
+                  <ResidentSelectionSection {...residentSelectProps} />
 
                   {selectedResident && isResidentUserPayment && (
                     <div className="flex flex-wrap gap-3 rounded-lg border p-3">
@@ -673,18 +547,6 @@ const CompleteOrderModal = ({
                 </Tab>
               </Tabs>
 
-              <div className="mt-6 rounded-lg border border-default-200 bg-default-50 p-3">
-                <CheckoutDiscountSection
-                  hasDiscount={hasDiscount}
-                  setHasDiscount={setHasDiscount}
-                  selectedOption={selectedDiscountOption}
-                  setSelectedOption={setSelectedDiscountOption}
-                  discountType={discountType}
-                  calculatedData={undefined}
-                  expiredDiscountMessage={expiredDiscountMessage}
-                />
-              </div>
-
               <div className="grid grid-cols-2">
                 {!isLoading && paymentMethods && (
                   <div className="mx-2 mt-4">
@@ -695,15 +557,23 @@ const CompleteOrderModal = ({
                       isRequired
                       classNames={{ base: cn('flex flex-col') }}
                     >
-                      {paymentMethods.map((item, index) => (
-                        <CustomRadio
-                          color="secondary"
-                          key={index}
-                          value={String(item.id)}
-                        >
-                          {item.name}
-                        </CustomRadio>
-                      ))}
+                      {paymentMethods.map((item, index) => {
+                        const disabledByResident =
+                          isResidentTab && isCashOrPosPayment(item.slug)
+                        const disabledByGuest =
+                          !isResidentTab && isResidentPayment(item.slug)
+
+                        return (
+                          <CustomRadio
+                            color="secondary"
+                            key={index}
+                            value={String(item.id)}
+                            isDisabled={disabledByResident || disabledByGuest}
+                          >
+                            {item.name}
+                          </CustomRadio>
+                        )
+                      })}
                     </FormRadioGroup>
                   </div>
                 )}

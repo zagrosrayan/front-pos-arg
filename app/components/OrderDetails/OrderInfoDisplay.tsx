@@ -215,24 +215,25 @@ const OrderInfoDisplay = ({
             </Button>
           )}
 
-          {!orderData?.status.slug ||
-            (orderData?.status.slug !== completeOrderSlug && (
-              <Button
-                variant="ghost"
-                onPress={onReprintClick}
-                isLoading={isPrintLoading && activePrintAction === 'reprint'}
-              >
-                {RE_PRINT_LABEL}
-              </Button>
-            ))}
+          {orderData?.status.slug === completeOrderSlug && (
+            <Button
+              variant="ghost"
+              onPress={onReprintClick}
+              isLoading={isPrintLoading && activePrintAction === 'reprint'}
+            >
+              {RE_PRINT_LABEL}
+            </Button>
+          )}
 
-          <Button
-            variant="ghost"
-            onPress={onPreprintClick}
-            isLoading={isPrintLoading && activePrintAction === 'preprint'}
-          >
-            {PRE_PRINT_LABEL}
-          </Button>
+          {orderData?.status.slug !== completeOrderSlug && (
+            <Button
+              variant="ghost"
+              onPress={onPreprintClick}
+              isLoading={isPrintLoading && activePrintAction === 'preprint'}
+            >
+              {PRE_PRINT_LABEL}
+            </Button>
+          )}
 
           {orderData?.status.slug !== completeOrderSlug && (
             <Button
@@ -491,24 +492,25 @@ const OrderInfoDisplay = ({
             </Button>
           )}
 
-          {!orderData?.status.slug ||
-            (orderData?.status.slug !== completeOrderSlug && (
-              <Button
-                variant="ghost"
-                onPress={onReprintClick}
-                isLoading={isPrintLoading && activePrintAction === 'reprint'}
-              >
-                {RE_PRINT_LABEL}
-              </Button>
-            ))}
+          {orderData?.status.slug === completeOrderSlug && (
+            <Button
+              variant="ghost"
+              onPress={onReprintClick}
+              isLoading={isPrintLoading && activePrintAction === 'reprint'}
+            >
+              {RE_PRINT_LABEL}
+            </Button>
+          )}
 
-          <Button
-            variant="ghost"
-            onPress={onPreprintClick}
-            isLoading={isPrintLoading && activePrintAction === 'preprint'}
-          >
-            {PRE_PRINT_LABEL}
-          </Button>
+          {orderData?.status.slug !== completeOrderSlug && (
+            <Button
+              variant="ghost"
+              onPress={onPreprintClick}
+              isLoading={isPrintLoading && activePrintAction === 'preprint'}
+            >
+              {PRE_PRINT_LABEL}
+            </Button>
+          )}
 
           {orderData?.status.slug !== completeOrderSlug && (
             <Button

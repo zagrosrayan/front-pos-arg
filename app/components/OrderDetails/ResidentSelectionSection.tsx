@@ -41,6 +41,9 @@ interface ResidentSelectionSectionProps {
   setSelectedResident: (data: ResidentData | null) => void
 }
 
+const toEnglishDigits = (value: string) =>
+  value.replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+
 const ResidentSelectionSection = ({
   setValue,
   selectedOption,
@@ -54,14 +57,19 @@ const ResidentSelectionSection = ({
         inputId="room-reservation-select"
         placeholder="شماره اتاق را وارد کنید..."
         value={selectedOption}
-        loadOptions={async (searchQuery, loadedOptions, additional) => {
+        debounceTimeout={300}
+        loadOptions={async (searchQuery, _loadedOptions, additional) => {
           const page = additional?.page || 1
+          const normalizedQuery = toEnglishDigits(
+            String(searchQuery || '').trim()
+          )
           try {
             const response = await apiRequest<any>({
               ...USER_RESIDENT_API.getAll(),
               params: {
                 page,
-                room_number: searchQuery || '',
+                room_number: normalizedQuery || undefined,
+                reserve_number: normalizedQuery || undefined,
               },
             })
 

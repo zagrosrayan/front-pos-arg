@@ -495,10 +495,10 @@ const Page = () => {
           phone:
             customerType == 'existing'
               ? selectedCustomer?.phone.replace(/[۰-۹]/g, (d: string) =>
-                  '۰0123456789'.indexOf(d).toString()
+                  '۰۱۲۳۴۵۶۷۸۹'.indexOf(d).toString()
                 )
               : (data as any)?.phone?.replace(/[۰-۹]/g, (d: string) =>
-                  '۰0123456789'.indexOf(d).toString()
+                  '۰۱۲۳۴۵۶۷۸۹'.indexOf(d).toString()
                 ),
           name:
             customerType == 'existing'

@@ -2,7 +2,7 @@
 
 'use client'
 
-import React from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import {
   Modal,
   ModalContent,
@@ -33,6 +33,7 @@ import { apiRequest } from '@/lib/axios'
 import ResidentSelectionSection from './ResidentSelectionSection'
 import { UseFormReturn } from 'react-hook-form'
 import { OrderRequestProps } from '@/types/orderType'
+import CheckoutDiscountSection from '@/app/components/Checkout/CheckoutDiscountSection'
 
 /* ═══════════════════════════════════════════════════════════════
    تایپ‌ها
@@ -64,6 +65,14 @@ interface PrePrintModalProps {
 
 type SelectOption = { value: any; label: string; data?: any } | null
 
+const EXPIRED_TOKEN = '|expired'
+const EXPIRED_UI_MESSAGE = 'این تخفیف منقضی شده است.'
+
+const hasExpiredTag = (msg?: unknown) => {
+  if (!msg) return false
+  return String(msg).includes(EXPIRED_TOKEN)
+}
+
 /** بررسی انقضای تخفیف */
 const isDiscountExpired = (expiresAt: string | null | undefined): boolean => {
   if (!expiresAt) return false
@@ -84,6 +93,121 @@ const PrePrintModal = ({
   setSelectedCustomer,
   discountDisplayInfo,
 }: PrePrintModalProps) => {
+  const [hasDiscount, setHasDiscount] = useState(false)
+  const [selectedDiscountOption, setSelectedDiscountOption] =
+    useState<any>(null)
+  const [expiredDiscountMessage, setExpiredDiscountMessage] =
+    useState<string>('')
+
+  const selectedDiscountType = methods.watch('selected_discount_type') as any
+  const discountNormalCode = methods.watch('discount_normal_code') as any
+  const discountGlobalCode = methods.watch('discount_global_code') as any
+  const discountValue = methods.watch('discount_value') as any
+  const useClubPoints = methods.watch('use_club_points') as any
+  const useNextPurchaseDiscount = methods.watch(
+    'use_next_purchase_discount'
+  ) as any
+
+  const computedHasDiscount = useMemo(() => {
+    return (
+      Boolean(String(selectedDiscountType ?? '').trim()) ||
+      Boolean(discountNormalCode) ||
+      Boolean(discountGlobalCode) ||
+      Boolean(Number(discountValue ?? 0) > 0) ||
+      Boolean(useClubPoints) ||
+      Boolean(useNextPurchaseDiscount)
+    )
+  }, [
+    selectedDiscountType,
+    discountNormalCode,
+    discountGlobalCode,
+    discountValue,
+    useClubPoints,
+    useNextPurchaseDiscount,
+  ])
+
+  useEffect(() => {
+    if (!isOpen) return
+    setHasDiscount(computedHasDiscount)
+
+    if (discountDisplayInfo?.isExpired) {
+      setExpiredDiscountMessage(EXPIRED_UI_MESSAGE)
+    }
+  }, [isOpen, computedHasDiscount, discountDisplayInfo])
+
+  useEffect(() => {
+    if (computedHasDiscount) setHasDiscount(true)
+  }, [computedHasDiscount])
+
+  useEffect(() => {
+    if (!isOpen) return
+
+    const t = String(selectedDiscountType ?? '').trim()
+    if (t === '1' && discountNormalCode) {
+      setSelectedDiscountOption({
+        value: discountNormalCode,
+        label: String(discountNormalCode),
+        data: { code: discountNormalCode },
+      })
+      return
+    }
+
+    if (t === '3' && discountGlobalCode) {
+      setSelectedDiscountOption({
+        value: discountGlobalCode,
+        label: String(discountGlobalCode),
+        data: { code: discountGlobalCode },
+      })
+      return
+    }
+
+    setSelectedDiscountOption(null)
+  }, [isOpen, selectedDiscountType, discountNormalCode, discountGlobalCode])
+
+  const errorsHash = useMemo(() => {
+    try {
+      return JSON.stringify(methods.formState.errors ?? {})
+    } catch {
+      return String(Date.now())
+    }
+  }, [methods.formState.errors])
+
+  useEffect(() => {
+    if (!isOpen) return
+    if (!hasDiscount) {
+      if (!discountDisplayInfo?.isExpired) {
+        setExpiredDiscountMessage('')
+      }
+      return
+    }
+
+    const err: any = methods.formState.errors as any
+    const candidates: Array<[string, any]> = [
+      ['selected_discount_type', err?.selected_discount_type?.message],
+      ['discount_normal_code', err?.discount_normal_code?.message],
+      ['discount_global_code', err?.discount_global_code?.message],
+      ['discount_value', err?.discount_value?.message],
+      ['use_next_purchase_discount', err?.use_next_purchase_discount?.message],
+      ['use_club_points', err?.use_club_points?.message],
+    ]
+
+    const expiredFields = candidates
+      .filter(([, m]) => hasExpiredTag(m))
+      .map(([f]) => f)
+
+    if (expiredFields.length > 0) {
+      setExpiredDiscountMessage(EXPIRED_UI_MESSAGE)
+      methods.clearErrors(expiredFields as any)
+      return
+    }
+
+    if (!discountDisplayInfo?.isExpired) {
+      setExpiredDiscountMessage('')
+    }
+  }, [errorsHash, isOpen, hasDiscount, discountDisplayInfo, methods])
+
+  const discountType = String(selectedDiscountType ?? '').trim() || undefined
+
   const buildCustomerSelectValue = (mode: 'name' | 'phone'): SelectOption => {
     if (!selectedCustomer) return null
     return {
@@ -456,6 +580,18 @@ const PrePrintModal = ({
                   <ResidentSelectionSection {...residentSelectProps} />
                 </Tab>
               </Tabs>
+
+              <div className="mt-6 rounded-lg border border-default-200 bg-default-50 p-3">
+                <CheckoutDiscountSection
+                  hasDiscount={hasDiscount}
+                  setHasDiscount={setHasDiscount}
+                  selectedOption={selectedDiscountOption}
+                  setSelectedOption={setSelectedDiscountOption}
+                  discountType={discountType}
+                  calculatedData={undefined}
+                  expiredDiscountMessage={expiredDiscountMessage}
+                />
+              </div>
             </ModalBody>
 
             <ModalFooter className="mr-auto">
