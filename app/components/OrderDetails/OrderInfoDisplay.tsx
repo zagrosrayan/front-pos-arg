@@ -215,8 +215,8 @@ const OrderInfoDisplay = ({
             </Button>
           )}
 
-          {/* بعد از تایید نهایی چاپ مجدد نداریم */}
-          {orderData?.status.slug !== completeOrderSlug && (
+          {/* بعد از تایید نهایی حتماً چاپ مجدد */}
+          {orderData?.status.slug === completeOrderSlug && (
             <Button
               variant="ghost"
               onPress={onReprintClick}
@@ -226,13 +226,15 @@ const OrderInfoDisplay = ({
             </Button>
           )}
 
-          <Button
-            variant="ghost"
-            onPress={onPreprintClick}
-            isLoading={isPrintLoading && activePrintAction === 'preprint'}
-          >
-            {PRE_PRINT_LABEL}
-          </Button>
+          {orderData?.status.slug !== completeOrderSlug && (
+            <Button
+              variant="ghost"
+              onPress={onPreprintClick}
+              isLoading={isPrintLoading && activePrintAction === 'preprint'}
+            >
+              {PRE_PRINT_LABEL}
+            </Button>
+          )}
 
           {orderData?.status.slug !== completeOrderSlug && (
             <Button
@@ -491,8 +493,8 @@ const OrderInfoDisplay = ({
             </Button>
           )}
 
-          {/* بعد از تایید نهایی چاپ مجدد نداریم */}
-          {orderData?.status.slug !== completeOrderSlug && (
+          {/* بعد از تایید نهایی حتماً چاپ مجدد */}
+          {orderData?.status.slug === completeOrderSlug && (
             <Button
               variant="ghost"
               onPress={onReprintClick}
@@ -502,13 +504,15 @@ const OrderInfoDisplay = ({
             </Button>
           )}
 
-          <Button
-            variant="ghost"
-            onPress={onPreprintClick}
-            isLoading={isPrintLoading && activePrintAction === 'preprint'}
-          >
-            {PRE_PRINT_LABEL}
-          </Button>
+          {orderData?.status.slug !== completeOrderSlug && (
+            <Button
+              variant="ghost"
+              onPress={onPreprintClick}
+              isLoading={isPrintLoading && activePrintAction === 'preprint'}
+            >
+              {PRE_PRINT_LABEL}
+            </Button>
+          )}
 
           {orderData?.status.slug !== completeOrderSlug && (
             <Button
