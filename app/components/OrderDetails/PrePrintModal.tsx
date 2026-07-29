@@ -1,7 +1,5 @@
 /* eslint-disable */
-
 'use client'
-
 import React, { useEffect, useMemo, useState } from 'react'
 import {
   Modal,
@@ -34,10 +32,6 @@ import ResidentSelectionSection from './ResidentSelectionSection'
 import { UseFormReturn } from 'react-hook-form'
 import { OrderRequestProps } from '@/types/orderType'
 import CheckoutDiscountSection from '@/app/components/Checkout/CheckoutDiscountSection'
-
-/* ═══════════════════════════════════════════════════════════════
-   تایپ‌ها
-   ═══════════════════════════════════════════════════════════════ */
 
 interface DiscountDisplayInfo {
   typeLabel: string
@@ -73,7 +67,6 @@ const hasExpiredTag = (msg?: unknown) => {
   return String(msg).includes(EXPIRED_TOKEN)
 }
 
-/** بررسی انقضای تخفیف */
 const isDiscountExpired = (expiresAt: string | null | undefined): boolean => {
   if (!expiresAt) return false
   return new Date(expiresAt) < new Date()
@@ -129,7 +122,6 @@ const PrePrintModal = ({
   useEffect(() => {
     if (!isOpen) return
     setHasDiscount(computedHasDiscount)
-
     if (discountDisplayInfo?.isExpired) {
       setExpiredDiscountMessage(EXPIRED_UI_MESSAGE)
     }
@@ -143,6 +135,7 @@ const PrePrintModal = ({
     if (!isOpen) return
 
     const t = String(selectedDiscountType ?? '').trim()
+
     if (t === '1' && discountNormalCode) {
       setSelectedDiscountOption({
         value: discountNormalCode,
@@ -174,6 +167,7 @@ const PrePrintModal = ({
 
   useEffect(() => {
     if (!isOpen) return
+
     if (!hasDiscount) {
       if (!discountDisplayInfo?.isExpired) {
         setExpiredDiscountMessage('')
@@ -220,7 +214,6 @@ const PrePrintModal = ({
     }
   }
 
-  /** فرمت نمایش مشتری با اطلاعات تخفیف */
   const formatCustomerOption = (option: any, mode: 'name' | 'phone') => {
     const data = option?.data
     if (!data) return <span>{option?.label || 'نامشخص'}</span>
@@ -282,7 +275,6 @@ const PrePrintModal = ({
             </ModalHeader>
 
             <ModalBody className="min-h-[450px] w-full">
-              {/* هشدار تخفیف منقضی شده */}
               {discountDisplayInfo?.isExpired && (
                 <div className="mb-4 rounded-lg border-2 border-danger-300 bg-danger-50 p-3">
                   <p className="text-sm font-semibold text-danger-700">
@@ -293,7 +285,6 @@ const PrePrintModal = ({
                 </div>
               )}
 
-              {/* نمایش اطلاعات تخفیف فعلی */}
               {discountDisplayInfo &&
                 discountDisplayInfo.typeLabel !== 'بدون تخفیف' && (
                   <div
@@ -590,6 +581,7 @@ const PrePrintModal = ({
                   discountType={discountType}
                   calculatedData={undefined}
                   expiredDiscountMessage={expiredDiscountMessage}
+                  isUpdating={true}
                 />
               </div>
             </ModalBody>

@@ -23,11 +23,6 @@ import { Controller, useFormContext } from 'react-hook-form'
 import { AsyncPaginate } from 'react-select-async-paginate'
 import SwitchField from '../ui/SwitchField'
 
-/* ═══════════════════════════════════════════════════════════════
-   تایپ‌ها
-   ═══════════════════════════════════════════════════════════════ */
-
-/** اطلاعات تخفیف مشتری */
 interface CustomerDiscountInfo {
   hasNextPurchaseDiscount: boolean
   nextPurchaseDiscountCode?: string
@@ -46,9 +41,7 @@ interface CheckoutDiscountSectionProps {
     items: CalculateItems
   }
   expiredDiscountMessage?: string
-  /** اطلاعات تخفیف مشتری انتخاب‌شده */
   customerDiscountInfo?: CustomerDiscountInfo | null
-  /** آیا در حالت ویرایش سفارش هستیم */
   isUpdating?: boolean
 }
 
@@ -74,7 +67,6 @@ const CheckoutDiscountSection = ({
   const methods = useFormContext<OrderRequestProps>()
   const [expiredWarning, setExpiredWarning] = useState<string>('')
 
-  // برای اینکه useEffect روی تغییرات errors درست trigger شود
   const errorsHash = useMemo(() => {
     try {
       return JSON.stringify(methods.formState.errors ?? {})
@@ -88,12 +80,12 @@ const CheckoutDiscountSection = ({
       setExpiredWarning('')
       return
     }
+
     if (isExpiredTagged(expiredDiscountMessage)) {
       setExpiredWarning(EXPIRED_UI_MESSAGE)
       return
     }
 
-    // بررسی انقضای تخفیف خرید بعدی مشتری
     if (
       discountType === '4' &&
       customerDiscountInfo?.nextPurchaseDiscountExpired
@@ -103,7 +95,6 @@ const CheckoutDiscountSection = ({
     }
 
     const err: any = methods.formState.errors as any
-
     const expiredFields: any[] = []
     const fieldsToCheck: any[] = [
       'selected_discount_type',
@@ -170,7 +161,6 @@ const CheckoutDiscountSection = ({
         تخفیف
       </Switch>
 
-      {/* هشدار منقضی با استایل قرمز */}
       {hasDiscount && expiredWarning ? (
         <div className="mx-2 mt-2 rounded-lg border-2 border-danger-300 bg-danger-50 p-2">
           <p className="text-sm font-semibold text-danger-700">
@@ -195,7 +185,6 @@ const CheckoutDiscountSection = ({
                 const customerType = methods.getValues('customer_type')
                 const customerId = methods.getValues('customer_id')
 
-                // فقط برای تخفیف خرید بعدی و امتیاز باشگاه نیاز به مشتری است
                 if (
                   (nextType === '4' || nextType === '5') &&
                   (customerType !== 'guest' || !customerId)
@@ -207,17 +196,14 @@ const CheckoutDiscountSection = ({
                   methods.setValue('discount_value', 0 as any)
                   methods.setValue('use_club_points', null as any)
                   methods.setValue('use_next_purchase_discount', false as any)
-
                   methods.setError('customer_id' as any, {
                     type: 'manual',
                     message:
                       'برای استفاده از تخفیف خرید بعدی یا امتیاز باشگاه، انتخاب مشتری مهمان الزامی است.',
                   })
-
                   return
                 }
 
-                // بررسی انقضای تخفیف خرید بعدی
                 if (
                   nextType === '4' &&
                   customerDiscountInfo?.nextPurchaseDiscountExpired
@@ -228,7 +214,6 @@ const CheckoutDiscountSection = ({
                 field.onChange(nextType)
                 setSelectedOption(null)
 
-                // فقط اگر تخفیف منقضی نشده، هشدار رو پاک کن
                 if (
                   !(
                     nextType === '4' &&
@@ -243,6 +228,14 @@ const CheckoutDiscountSection = ({
                 methods.setValue('discount_value', 0 as any)
                 methods.setValue('use_club_points', null as any)
                 methods.setValue('use_next_purchase_discount', nextType === '4')
+
+                if (nextType === '2') {
+                  methods.setValue(
+                    'discount_type',
+                    (methods.getValues('discount_type') ||
+                      DiscountType.percentage) as any
+                  )
+                }
 
                 methods.clearErrors([
                   'discount_normal_code',
@@ -276,7 +269,6 @@ const CheckoutDiscountSection = ({
       )}
 
       <div className="flex flex-col p-2">
-        {/* تخفیف ساده */}
         {discountType === '1' && (
           <div className="m-2">
             <label
@@ -285,7 +277,6 @@ const CheckoutDiscountSection = ({
             >
               کد تخفیف ساده <span className="text-red-500">*</span>
             </label>
-
             <AsyncPaginate
               inputId="discount_normal_code"
               name="discount_normal_code"
@@ -314,9 +305,7 @@ const CheckoutDiscountSection = ({
                       search: q || '',
                     },
                   })
-
                   let items = response?.data?.items || []
-
                   if (q) {
                     const qLower = q.toLowerCase()
                     items = items.filter((it: any) => {
@@ -325,17 +314,14 @@ const CheckoutDiscountSection = ({
                       return code.includes(qLower) || name.includes(qLower)
                     })
                   }
-
                   const validDiscounts = items.filter(
                     (item: any) => item.code !== null
                   )
-
                   const options = validDiscounts.map((item: any) => ({
                     value: item.code,
                     label: item.name,
                     data: item,
                   }))
-
                   return {
                     options,
                     hasMore:
@@ -385,7 +371,6 @@ const CheckoutDiscountSection = ({
                 }),
               }}
             />
-
             {methods.formState.errors.discount_normal_code &&
               !isExpiredTagged(
                 methods.formState.errors.discount_normal_code.message
@@ -397,7 +382,6 @@ const CheckoutDiscountSection = ({
           </div>
         )}
 
-        {/* تخفیف دستی */}
         {discountType === '2' && (
           <div className="flex flex-col p-2">
             <Controller
@@ -408,7 +392,7 @@ const CheckoutDiscountSection = ({
                   name="discount_type"
                   orientation="horizontal"
                   defaultValue={DiscountType.percentage}
-                  value={field.value}
+                  value={field.value || DiscountType.percentage}
                   onChange={(val) => field.onChange(val.target.value)}
                   classNames={{ base: cn('flex flex-col m-2') }}
                 >
@@ -417,7 +401,6 @@ const CheckoutDiscountSection = ({
                 </RadioGroup>
               )}
             />
-
             <Controller
               control={methods.control}
               name="discount_value"
@@ -456,7 +439,6 @@ const CheckoutDiscountSection = ({
           </div>
         )}
 
-        {/* تخفیف همگانی */}
         {discountType === '3' && (
           <div className="m-2">
             <label
@@ -465,7 +447,6 @@ const CheckoutDiscountSection = ({
             >
               کد تخفیف همگانی <span className="text-red-500">*</span>
             </label>
-
             <AsyncPaginate
               inputId="discount_global_code"
               name="discount_global_code"
@@ -494,9 +475,7 @@ const CheckoutDiscountSection = ({
                       search: q || '',
                     },
                   })
-
                   let items = response?.data?.items || []
-
                   if (q) {
                     const qLower = q.toLowerCase()
                     items = items.filter((it: any) => {
@@ -505,17 +484,14 @@ const CheckoutDiscountSection = ({
                       return code.includes(qLower) || name.includes(qLower)
                     })
                   }
-
                   const validDiscounts = items.filter(
                     (item: any) => item.code !== null
                   )
-
                   const options = validDiscounts.map((item: any) => ({
                     value: item.code,
                     label: item.name,
                     data: item,
                   }))
-
                   return {
                     options,
                     hasMore:
@@ -565,7 +541,6 @@ const CheckoutDiscountSection = ({
                 }),
               }}
             />
-
             {methods.formState.errors.discount_global_code &&
               !isExpiredTagged(
                 methods.formState.errors.discount_global_code.message
@@ -577,10 +552,8 @@ const CheckoutDiscountSection = ({
           </div>
         )}
 
-        {/* تخفیف خرید بعدی */}
         {discountType === '4' && (
           <div className="m-2">
-            {/* نمایش وضعیت تخفیف خرید بعدی مشتری */}
             {customerDiscountInfo && (
               <div
                 className={cn(
@@ -630,7 +603,6 @@ const CheckoutDiscountSection = ({
               </div>
             )}
 
-            {/* هشدار اگر تخفیف منقضی شده */}
             {customerDiscountInfo?.nextPurchaseDiscountExpired && (
               <div className="mb-3 rounded-lg border-2 border-danger-300 bg-danger-50 p-2">
                 <p className="text-sm font-semibold text-danger-700">
@@ -653,10 +625,8 @@ const CheckoutDiscountSection = ({
           </div>
         )}
 
-        {/* امتیاز باشگاه */}
         {discountType === '5' && (
           <>
-            {/* نمایش امتیاز باشگاه مشتری */}
             {customerDiscountInfo && (
               <div className="m-2 mb-3 rounded-lg border-2 border-default-200 bg-default-50 p-3">
                 <p className="text-sm">

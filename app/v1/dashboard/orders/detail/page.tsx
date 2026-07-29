@@ -1,4 +1,4 @@
-/* eslint-disable prefer-spread */
+/* eslint-disable prefer-const */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-function-type */
 'use client'
@@ -11,7 +11,11 @@ import { PRINTER_API } from '@/routes/api/printer'
 import { TYPE_API } from '@/routes/api/type'
 import { DASHBOARD_PATH } from '@/routes/path'
 import { PaginationResponseProps } from '@/types/apiTypes'
-import { OrderRequestProps, OrderResponseProps } from '@/types/orderType'
+import {
+  DiscountType,
+  OrderRequestProps,
+  OrderResponseProps,
+} from '@/types/orderType'
 import { TypeResponseProps } from '@/types/typeTypes'
 import { useDisclosure } from '@heroui/react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -36,17 +40,11 @@ interface Data {
 
 const completeOrderSlug = 'order-status-complete'
 
-/* ═══════════════════════════════════════════════════════════════
-   توابع کمکی برای تخفیف
-   ═══════════════════════════════════════════════════════════════ */
-
-/** بررسی انقضای تخفیف */
 const isDiscountExpired = (expiresAt: string | null | undefined): boolean => {
   if (!expiresAt) return false
   return new Date(expiresAt) < new Date()
 }
 
-/** دریافت نوع تخفیف به همراه وضعیت انقضا */
 const resolveDiscountTypeLabelFromOrder = (
   order: OrderResponseProps | null
 ): { label: string; isExpired: boolean } => {
@@ -99,7 +97,6 @@ const resolveDiscountTypeLabelFromOrder = (
   return { label: 'بدون تخفیف', isExpired: false }
 }
 
-/** دریافت لیبل ساده (برای سازگاری با کد قبلی) */
 const getDiscountTypeLabel = (order: OrderResponseProps | null): string => {
   return resolveDiscountTypeLabelFromOrder(order).label
 }
@@ -109,7 +106,6 @@ const resolveDiscountCodeFromOrder = (order: OrderResponseProps | null) => {
   return d?.code ?? d?.discount_code ?? (order as any)?.discount_code ?? null
 }
 
-/** دریافت اطلاعات کامل تخفیف برای نمایش */
 const getDiscountDisplayInfo = (
   order: OrderResponseProps | null
 ): {
@@ -162,7 +158,6 @@ const hydrateDiscountIntoForm = (
   const scope = String(d?.scope ?? '')
   const slug = String(d?.slug ?? '')
 
-  // Reset to default first (important to avoid stale values)
   methods.setValue('selected_discount_type', '' as any)
   methods.setValue('discount_normal_code', null as any)
   methods.setValue('discount_global_code', null as any)
@@ -185,7 +180,10 @@ const hydrateDiscountIntoForm = (
 
   if (scope === 'in_order') {
     methods.setValue('selected_discount_type', '2' as any)
-    methods.setValue('discount_type', d?.discount_type || ('' as any))
+    methods.setValue(
+      'discount_type',
+      (d?.discount_type || DiscountType.percentage) as any
+    )
     methods.setValue('discount_value', Number(d?.discount_value) || 0)
     return
   }
@@ -213,24 +211,24 @@ const applyDiscountToPayload = (payload: any, data: OrderRequestProps) => {
     (data as any)?.selected_discount_type ?? ''
   ).trim()
 
+  payload.discount_normal_code = null
+  payload.discount_global_code = null
+  payload.discount_type = null
+  payload.discount_value = null
+  payload.use_club_points = null
+  payload.use_next_purchase_discount = false
+
   if (!selectedType) {
-    payload.selected_discount_type = null
-    payload.discount_code = null
-    payload.discount_type = null
-    payload.discount_value = null
-    payload.use_club_points = null
-    payload.use_next_purchase_discount = false
     return payload
   }
 
-  payload.selected_discount_type = selectedType
-
   if (selectedType === '1') {
-    payload.discount_code = (data as any)?.discount_normal_code ?? null
+    payload.discount_normal_code = (data as any)?.discount_normal_code ?? null
   } else if (selectedType === '3') {
-    payload.discount_code = (data as any)?.discount_global_code ?? null
+    payload.discount_global_code = (data as any)?.discount_global_code ?? null
   } else if (selectedType === '2') {
-    payload.discount_type = (data as any)?.discount_type ?? null
+    payload.discount_type =
+      (data as any)?.discount_type || DiscountType.percentage
     payload.discount_value = (data as any)?.discount_value ?? null
   } else if (selectedType === '4') {
     payload.use_next_purchase_discount = Boolean(
@@ -286,7 +284,6 @@ const Page = () => {
   const [customerType, setCustomerType] = useState<string>('existing')
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null)
 
-  /** اطلاعات تخفیف برای نمایش */
   const discountDisplayInfo = useMemo(
     () => getDiscountDisplayInfo(orderData),
     [orderData]
@@ -321,7 +318,6 @@ const Page = () => {
     try {
       setIsCompleteLoading(true)
 
-      // بررسی انقضای تخفیف قبل از ثبت نهایی
       if (discountDisplayInfo.isExpired) {
         const expiredResult = await Swal.fire({
           title: 'تخفیف منقضی شده',
@@ -340,10 +336,11 @@ const Page = () => {
           return
         }
 
-        // پاک کردن تخفیف از فرم
         methods.setValue('selected_discount_type', '' as any)
         methods.setValue('discount_normal_code', null as any)
         methods.setValue('discount_global_code', null as any)
+        methods.setValue('discount_type', undefined as any)
+        methods.setValue('discount_value', 0 as any)
         methods.setValue('use_next_purchase_discount', false as any)
         methods.setValue('use_club_points', null as any)
       }
@@ -363,6 +360,8 @@ const Page = () => {
 
       if (!result.isConfirmed) return
 
+      const freshData = methods.getValues()
+
       let payload: any = {}
       let apiEndpoint
 
@@ -373,14 +372,14 @@ const Page = () => {
               ? selectedCustomer?.phone.replace(/[۰-۹]/g, (d: string) =>
                   '۰۱۲۳۴۵۶۷۸۹'.indexOf(d).toString()
                 )
-              : (data as any)?.phone?.replace(/[۰-۹]/g, (d: string) =>
+              : (freshData as any)?.phone?.replace(/[۰-۹]/g, (d: string) =>
                   '۰۱۲۳۴۵۶۷۸۹'.indexOf(d).toString()
                 ),
           name:
             customerType == 'existing'
               ? selectedCustomer?.name
-              : (data as any)?.name,
-          payment_method: (data as any)?.payment_method,
+              : (freshData as any)?.name,
+          payment_method: (freshData as any)?.payment_method,
           order_type: 'guest',
         }
 
@@ -391,17 +390,17 @@ const Page = () => {
             ?.filter((x) => x.id == paymentMethod)[0]
             ?.slug?.includes('pos')
         ) {
-          payload = { ...payload, serial_number: (data as any)?.serial_number }
+          payload = {
+            ...payload,
+            serial_number: (freshData as any)?.serial_number,
+          }
         }
 
-        // فقط اگر تخفیف منقضی نشده باشد، اعمال کن
-        if (!discountDisplayInfo.isExpired) {
-          payload = applyDiscountToPayload(payload, data)
-        }
+        payload = applyDiscountToPayload(payload, freshData)
         apiEndpoint = ORDER_API.completeOrder(payload)
       } else {
         payload = {
-          payment_method: (data as any)?.payment_method,
+          payment_method: (freshData as any)?.payment_method,
           order_type: 'resident',
         }
 
@@ -409,12 +408,13 @@ const Page = () => {
           paymentMethods?.filter((x) => x.id == paymentMethod)[0]?.slug !==
           'payment-method-resident-user'
         ) {
-          payload.phone = (data as any)?.phone?.replace(/[۰-۹]/g, (d: string) =>
-            '۰۱۲۳۴۵۶۷۸۹'.indexOf(d).toString()
+          payload.phone = (freshData as any)?.phone?.replace(
+            /[۰-۹]/g,
+            (d: string) => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d).toString()
           )
-          payload.name = (data as any)?.name
+          payload.name = (freshData as any)?.name
         } else {
-          payload.reserve_number = (data as any)?.reserve_number
+          payload.reserve_number = (freshData as any)?.reserve_number
         }
 
         if (
@@ -424,13 +424,13 @@ const Page = () => {
             ?.filter((x) => x.id == paymentMethod)[0]
             ?.slug?.includes('pos')
         ) {
-          payload = { ...payload, serial_number: (data as any)?.serial_number }
+          payload = {
+            ...payload,
+            serial_number: (freshData as any)?.serial_number,
+          }
         }
 
-        // فقط اگر تخفیف منقضی نشده باشد، اعمال کن
-        if (!discountDisplayInfo.isExpired) {
-          payload = applyDiscountToPayload(payload, data)
-        }
+        payload = applyDiscountToPayload(payload, freshData)
         apiEndpoint = ORDER_API.completeOrder(payload)
       }
 
@@ -444,7 +444,6 @@ const Page = () => {
     } catch (error) {
       console.error(error)
 
-      // بررسی خطای تخفیف منقضی از سرور
       const errorMessage = (error as any)?.response?.data?.message || ''
       if (errorMessage.includes('|expired') || errorMessage.includes('منقضی')) {
         toast.error('کد تخفیف منقضی شده است')
@@ -480,12 +479,7 @@ const Page = () => {
     try {
       setIsCompleteLoading(true)
 
-      // بررسی انقضای تخفیف قبل از پیش‌چاپ
-      if (discountDisplayInfo.isExpired) {
-        toast.warning(
-          'توجه: کد تخفیف منقضی شده است و در فاکتور اعمال نخواهد شد.'
-        )
-      }
+      const freshData = methods.getValues()
 
       let payload: any = {}
       let apiEndpoint
@@ -497,13 +491,13 @@ const Page = () => {
               ? selectedCustomer?.phone.replace(/[۰-۹]/g, (d: string) =>
                   '۰۱۲۳۴۵۶۷۸۹'.indexOf(d).toString()
                 )
-              : (data as any)?.phone?.replace(/[۰-۹]/g, (d: string) =>
+              : (freshData as any)?.phone?.replace(/[۰-۹]/g, (d: string) =>
                   '۰۱۲۳۴۵۶۷۸۹'.indexOf(d).toString()
                 ),
           name:
             customerType == 'existing'
               ? selectedCustomer?.name
-              : (data as any)?.name,
+              : (freshData as any)?.name,
           order_type: 'guest',
         }
 
@@ -514,17 +508,17 @@ const Page = () => {
             ?.filter((x) => x.id == paymentMethod)[0]
             ?.slug?.includes('pos')
         ) {
-          payload = { ...payload, serial_number: (data as any)?.serial_number }
+          payload = {
+            ...payload,
+            serial_number: (freshData as any)?.serial_number,
+          }
         }
 
-        // فقط اگر تخفیف منقضی نشده باشد، اعمال کن
-        if (!discountDisplayInfo.isExpired) {
-          payload = applyDiscountToPayload(payload, data)
-        }
+        payload = applyDiscountToPayload(payload, freshData)
         apiEndpoint = ORDER_API.prePrint(payload)
       } else {
         payload = {
-          reserve_number: (data as any)?.reserve_number,
+          reserve_number: (freshData as any)?.reserve_number,
           order_type: 'resident',
         }
 
@@ -535,13 +529,13 @@ const Page = () => {
             ?.filter((x) => x.id == paymentMethod)[0]
             ?.slug?.includes('pos')
         ) {
-          payload = { ...payload, serial_number: (data as any)?.serial_number }
+          payload = {
+            ...payload,
+            serial_number: (freshData as any)?.serial_number,
+          }
         }
 
-        // فقط اگر تخفیف منقضی نشده باشد، اعمال کن
-        if (!discountDisplayInfo.isExpired) {
-          payload = applyDiscountToPayload(payload, data)
-        }
+        payload = applyDiscountToPayload(payload, freshData)
         apiEndpoint = ORDER_API.prePrint(payload)
       }
 
@@ -568,7 +562,6 @@ const Page = () => {
     } catch (error) {
       console.error(error)
 
-      // بررسی خطای تخفیف منقضی از سرور
       const errorMessage = (error as any)?.response?.data?.message || ''
       if (errorMessage.includes('|expired') || errorMessage.includes('منقضی')) {
         toast.error('کد تخفیف منقضی شده است')
@@ -587,7 +580,6 @@ const Page = () => {
     try {
       setIsPrintLoading(true)
 
-      // روی لوکال ابتدا فاکتور را در مرورگر باز کن (چاپ فیزیکی لینوکسی در دسترس نیست)
       if (orderData) {
         const discountInfo = resolveDiscountTypeLabelFromOrder(orderData)
         postToInvoice({
@@ -663,7 +655,6 @@ const Page = () => {
   useEffect(() => {
     if (!orderData) return
 
-    // resident hydration
     if (orderData.reserve) {
       const residentData: ResidentData = {
         Room: orderData.reserve.Room,
@@ -686,7 +677,6 @@ const Page = () => {
       }
     }
 
-    // customer hydration
     if (orderData.customer) {
       methods.setValue('name', orderData.customer.name || '')
       methods.setValue('phone', orderData.customer.phone || '')
@@ -695,7 +685,6 @@ const Page = () => {
       methods.setValue('customer_id', (orderData.customer as any).id ?? null)
     }
 
-    // IMPORTANT: discount hydration (fix your issue)
     hydrateDiscountIntoForm(methods, orderData)
   }, [orderData])
 

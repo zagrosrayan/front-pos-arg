@@ -35,7 +35,6 @@ import { FormProvider, useForm } from 'react-hook-form'
 import { IoBagHandle } from 'react-icons/io5'
 import { TbShoppingBagExclamation, TbTrash } from 'react-icons/tb'
 import { toast } from 'react-toastify'
-
 import CheckoutItem from './CheckoutItem'
 import CheckoutDiscountSection from './CheckoutDiscountSection'
 import CheckoutSummarySection from './CheckoutSummarySection'
@@ -44,17 +43,9 @@ import CheckoutOrderSection, {
   CustomerDiscountInfo,
 } from './CheckoutOrderSection'
 
-/* ═══════════════════════════════════════════════════════════════
-   تایپ‌ها
-   ═══════════════════════════════════════════════════════════════ */
-
 interface CheckoutProps {
   className?: string
 }
-
-/* ═══════════════════════════════════════════════════════════════
-   توابع کمکی
-   ═══════════════════════════════════════════════════════════════ */
 
 export const CustomRadio = (props: RadioProps) => {
   const { children, ...otherProps } = props
@@ -90,21 +81,15 @@ const getResidentCompany = (item: any) => {
   )
 }
 
-/** بررسی انقضای تخفیف */
 const isDiscountExpired = (expiresAt: string | undefined): boolean => {
   if (!expiresAt) return false
   return new Date(expiresAt) < new Date()
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   کامپوننت اصلی
-   ═══════════════════════════════════════════════════════════════ */
-
 const Checkout = ({ className }: CheckoutProps) => {
   const searchParams = useSearchParams()
   const orderId = searchParams.get('order_id')
   const router = useRouter()
-
   const methods = useForm<OrderRequestProps>({
     mode: 'onChange',
     defaultValues: {
@@ -134,7 +119,6 @@ const Checkout = ({ className }: CheckoutProps) => {
   const [isOrderFetched, setIsOrderFetched] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
   const [isSubmitLoading, setIsSubmitLoading] = useState(false)
-
   const [calculatedData, setCalculatedData] = useState<{
     items: CalculateItems
   }>()
@@ -146,11 +130,7 @@ const Checkout = ({ className }: CheckoutProps) => {
     useState<any>(null)
   const [expiredDiscountMessage, setExpiredDiscountMessage] =
     useState<string>('')
-
-  /** حالت مشتری مهمان */
   const [guestMode, setGuestMode] = useState<GuestMode>('existing')
-
-  /** اطلاعات تخفیف مشتری انتخاب‌شده */
   const [customerDiscountInfo, setCustomerDiscountInfo] =
     useState<CustomerDiscountInfo | null>(null)
 
@@ -160,10 +140,6 @@ const Checkout = ({ className }: CheckoutProps) => {
   const serviceType = methods.watch('service_type')
   const customerType = methods.watch('customer_type')
   const discountType = methods.watch('selected_discount_type')
-
-  /* ═══════════════════════════════════════════════════════════════
-     Validation
-     ═══════════════════════════════════════════════════════════════ */
 
   const validateCustomerOrReserve = (data: OrderRequestProps) => {
     const discountSelected =
@@ -199,6 +175,7 @@ const Checkout = ({ className }: CheckoutProps) => {
         })
         return false
       }
+
       if (guestMode === 'new') {
         const name = normalizeText((data as any).customer_name)
         const mobile = normalizeText((data as any).customer_mobile)
@@ -249,13 +226,8 @@ const Checkout = ({ className }: CheckoutProps) => {
     return valid
   }
 
-  /* ═══════════════════════════════════════════════════════════════
-     Calculate Order
-     ═══════════════════════════════════════════════════════════════ */
-
   const calculateOrder = useCallback(async () => {
     const data = methods.getValues()
-
     const order = cart.map((item) => ({
       food_id: item.id,
       quantity: item.count,
@@ -344,7 +316,6 @@ const Checkout = ({ className }: CheckoutProps) => {
       )
       setCalculatedData(response?.data as CalculateResponseProps)
       setExpiredDiscountMessage('')
-
       methods.clearErrors([
         'discount_normal_code',
         'discount_global_code',
@@ -362,10 +333,6 @@ const Checkout = ({ className }: CheckoutProps) => {
       }
     }
   }, [methods, cart])
-
-  /* ═══════════════════════════════════════════════════════════════
-     Effects
-     ═══════════════════════════════════════════════════════════════ */
 
   useEffect(() => {
     if (serviceType === ServiceType.takeaway) {
@@ -411,10 +378,6 @@ const Checkout = ({ className }: CheckoutProps) => {
     return () => clearInterval(interval)
   }, [cart, calculateOrder])
 
-  /* ═══════════════════════════════════════════════════════════════
-     Fetch Order Details
-     ═══════════════════════════════════════════════════════════════ */
-
   const fetchOrderDetails = useCallback(
     async (id: string) => {
       try {
@@ -426,8 +389,8 @@ const Checkout = ({ className }: CheckoutProps) => {
           await apiRequest<PaginationResponseProps<OrderResponseProps>>(
             requestConfig
           )
-        const orderData = response?.data.items[0]
 
+        const orderData = response?.data.items[0]
         if (!orderData) {
           router.push(DASHBOARD_PATH.MAIN)
           return
@@ -492,7 +455,6 @@ const Checkout = ({ className }: CheckoutProps) => {
 
         if (orderData.discount) {
           setHasDiscount(true)
-
           if (orderData.discount.scope === 'global') {
             methods.setValue('selected_discount_type', '3')
             methods.setValue(
@@ -593,10 +555,6 @@ const Checkout = ({ className }: CheckoutProps) => {
     if (cart.length === 0) methods.reset()
   }, [cart.length, methods])
 
-  /* ═══════════════════════════════════════════════════════════════
-     Build Payload
-     ═══════════════════════════════════════════════════════════════ */
-
   const buildOrderPayload = (data: OrderRequestProps, order: any[]) => {
     const isNewGuest = data.customer_type === 'guest' && guestMode === 'new'
 
@@ -618,6 +576,13 @@ const Checkout = ({ className }: CheckoutProps) => {
         : null
     }
 
+    payload.discount_normal_code = null
+    payload.discount_global_code = null
+    payload.discount_type = null
+    payload.discount_value = null
+    payload.use_next_purchase_discount = false
+    payload.use_club_points = false
+
     if (data.selected_discount_type == '2') {
       payload.discount_type = data.discount_type ?? DiscountType.percentage
       payload.discount_value = data.discount_value
@@ -636,10 +601,6 @@ const Checkout = ({ className }: CheckoutProps) => {
     return payload
   }
 
-  /* ═══════════════════════════════════════════════════════════════
-     Submit Handlers
-     ═══════════════════════════════════════════════════════════════ */
-
   const handleUpdateOrder = async (data: OrderRequestProps) => {
     if (!validateCustomerOrReserve(data)) return
     if (!validateNewGuestFields(data)) return
@@ -654,7 +615,6 @@ const Checkout = ({ className }: CheckoutProps) => {
 
     try {
       setIsSubmitLoading(true)
-
       const order = cart.map((item) => ({
         quantity: item.count,
         food_id: item.id,
@@ -666,6 +626,7 @@ const Checkout = ({ className }: CheckoutProps) => {
       const response = await apiRequest(ORDER_API.updateById(payload), {
         order: orderId,
       })
+
       toast.success(response?.message || 'سفارش با موفقیت بروزرسانی شد')
 
       clearCart()
@@ -679,7 +640,6 @@ const Checkout = ({ className }: CheckoutProps) => {
       setIsUpdating(false)
     } catch (error) {
       console.error('Failed to submit order:', error)
-
       const errorMessage = (error as any)?.response?.data?.message || ''
       if (errorMessage.includes('|expired')) {
         setExpiredDiscountMessage('کد تخفیف منقضی شده است')
@@ -710,7 +670,6 @@ const Checkout = ({ className }: CheckoutProps) => {
 
     try {
       setIsSubmitLoading(true)
-
       const order = cart.map((item) => ({
         quantity: item.count,
         food_id: item.id,
@@ -731,7 +690,6 @@ const Checkout = ({ className }: CheckoutProps) => {
       setCustomerDiscountInfo(null)
     } catch (error) {
       console.error('Failed to submit order:', error)
-
       const errorMessage = (error as any)?.response?.data?.message || ''
       if (errorMessage.includes('|expired')) {
         setExpiredDiscountMessage('کد تخفیف منقضی شده است')
@@ -761,10 +719,6 @@ const Checkout = ({ className }: CheckoutProps) => {
   }
 
   const hasRateServiceEnabled = hasRateService === '1'
-
-  /* ═══════════════════════════════════════════════════════════════
-     Render
-     ═══════════════════════════════════════════════════════════════ */
 
   return isLoadingOrder ? (
     <div className="mt-5 min-w-[410px] whitespace-nowrap p-3 text-center text-lg">
@@ -813,6 +767,7 @@ const Checkout = ({ className }: CheckoutProps) => {
                   <CheckoutItem item={item} key={index} />
                 ))}
               </ul>
+
               <CheckoutOrderSection
                 serviceType={serviceType}
                 customerType={customerType || 'resident'}
@@ -827,6 +782,7 @@ const Checkout = ({ className }: CheckoutProps) => {
                 reservationOptions={reservationOptions}
                 setReservationOptions={setReservationOptions}
               />
+
               <CheckoutDiscountSection
                 hasDiscount={hasDiscount}
                 setHasDiscount={setHasDiscount}
@@ -838,12 +794,12 @@ const Checkout = ({ className }: CheckoutProps) => {
                 customerDiscountInfo={customerDiscountInfo}
                 isUpdating={isUpdating}
               />
-              {/* خلاصه سفارش */}
+
               <CheckoutSummarySection
                 calculatedData={calculatedData}
                 hasRateService={hasRateServiceEnabled}
               />
-              {/* نمایش هشدار تخفیف منقضی */}
+
               {expiredDiscountMessage && (
                 <div className="rounded-lg border-2 border-danger-300 bg-danger-50 p-3">
                   <p className="text-sm font-semibold text-danger-700">
