@@ -1,4 +1,5 @@
 'use client'
+
 import {
   FROM_DATE_LABEL,
   ORDERS_LIST_LABEL,
@@ -19,20 +20,79 @@ import FormDatePicker from '../../ui/FormDatePicker'
 import FormInput from '../../ui/FormInput'
 import DataTable, { ColumnsData } from '../DataTable'
 import { useForm } from 'react-hook-form'
+import { parseDate } from '@internationalized/date'
 
 type SearchFormValues = {
   invoice_number: string
 }
 
+const STORAGE_KEY = 'report_table_filters'
+
+const loadFiltersFromStorage = (): Record<string, any> | null => {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+const saveFiltersToStorage = (
+  filters: Record<string, any>,
+  invoice: string
+) => {
+  if (typeof window === 'undefined') return
+  try {
+    sessionStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        from: filters.from ? String(filters.from) : null,
+        to: filters.to ? String(filters.to) : null,
+        room_number: filters.room_number || null,
+        invoice_number: invoice || null,
+      })
+    )
+  } catch {}
+}
+
+const safeParseDate = (value: string) => {
+  if (!value) return undefined
+  try {
+    return parseDate(value)
+  } catch {
+    return undefined
+  }
+}
+
 const ReportTable = () => {
-  const [filters, setFilters] = useState({})
+  const storedFilters = useMemo(() => loadFiltersFromStorage(), [])
+
+  const [filters, setFilters] = useState<Record<string, any>>(() => {
+    if (!storedFilters) return {}
+    const f: Record<string, any> = {}
+    if (storedFilters.from) f.from = storedFilters.from
+    if (storedFilters.to) f.to = storedFilters.to
+    if (storedFilters.room_number) f.room_number = storedFilters.room_number
+    return f
+  })
   const [currentKey, setCurrentKey] = useState(0)
-  const [invoiceSearch, setInvoiceSearch] = useState('')
-  const methods = useForm()
+  const [invoiceSearch, setInvoiceSearch] = useState(
+    storedFilters?.invoice_number ?? ''
+  )
+
+  const methods = useForm({
+    defaultValues: {
+      from: storedFilters?.from ? safeParseDate(storedFilters.from) : undefined,
+      to: storedFilters?.to ? safeParseDate(storedFilters.to) : undefined,
+      room_number: storedFilters?.room_number ?? '',
+    },
+  })
+
   const searchMethods = useForm<SearchFormValues>({
     mode: 'onChange',
     defaultValues: {
-      invoice_number: '',
+      invoice_number: storedFilters?.invoice_number ?? '',
     },
   })
 
@@ -41,14 +101,16 @@ const ReportTable = () => {
     const updatedFilters = { ...filters, ...data }
     setFilters(updatedFilters)
     setCurrentKey((prev) => prev + 1)
+    saveFiltersToStorage(updatedFilters, invoiceSearch)
   }
 
   const handleSearchSubmit = (data: SearchFormValues) => {
-    setInvoiceSearch(data.invoice_number || '')
+    const value = (data.invoice_number || '').trim()
+    setInvoiceSearch(value)
     setCurrentKey((prev) => prev + 1)
+    saveFiltersToStorage(filters, value)
   }
 
-  // ارسال شماره فاکتور به بک‌اند (exact match)
   const extraFilterParameters = useMemo(() => {
     const params: Record<string, string | number> = {
       ...filters,
@@ -209,7 +271,6 @@ const ReportTable = () => {
           </FormLayout>
         </div>
 
-        {/* فرم جستجوی شماره فاکتور */}
         <div className="space-y-5">
           <h2 className="px-3 text-xl font-bold text-default-700">
             جستجو با شماره فاکتور :

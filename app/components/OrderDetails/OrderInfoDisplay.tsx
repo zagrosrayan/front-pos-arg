@@ -1,7 +1,5 @@
 /* eslint-disable */
-
 'use client'
-
 import React, { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Button, Chip, cn } from '@heroui/react'
@@ -27,10 +25,6 @@ import { PAYMENT_INFO_TEXT, PAYMENT_METHOD_TEXT } from '@/app/constant/text'
 import { DASHBOARD_PATH } from '@/routes/path'
 import { getServiceType, OrderResponseProps } from '@/types/orderType'
 
-/* ═══════════════════════════════════════════════════════════════
-   تایپ‌ها
-   ═══════════════════════════════════════════════════════════════ */
-
 interface DiscountDisplayInfo {
   typeLabel: string
   code: string | null
@@ -52,18 +46,12 @@ interface OrderInfoDisplayProps {
   handlePrintOrder: () => void
   handlePrintButtonClick: () => void
   discountDisplayInfo?: DiscountDisplayInfo
-  // برای سازگاری با کد قبلی
   discountTypeLabel?: string
   discountCode?: string | null
 }
 
 type PrintAction = 'reprint' | 'preprint' | null
 
-/* ═══════════════════════════════════════════════════════════════
-   توابع کمکی
-   ═══════════════════════════════════════════════════════════════ */
-
-/** بررسی انقضای تخفیف */
 const isDiscountExpired = (expiresAt: string | null | undefined): boolean => {
   if (!expiresAt) return false
   return new Date(expiresAt) < new Date()
@@ -85,7 +73,6 @@ const OrderInfoDisplay = ({
 }: OrderInfoDisplayProps) => {
   const [activePrintAction, setActivePrintAction] = useState<PrintAction>(null)
 
-  // وقتی پرینت تمام شد، اکشن فعال ریست شود
   useEffect(() => {
     if (!isPrintLoading) setActivePrintAction(null)
   }, [isPrintLoading])
@@ -100,9 +87,7 @@ const OrderInfoDisplay = ({
     handlePrintButtonClick()
   }
 
-  /** محاسبه اطلاعات تخفیف از orderData */
   const computedDiscountInfo = useMemo((): DiscountDisplayInfo => {
-    // اگر discountDisplayInfo از props اومده، اون رو استفاده کن
     if (discountDisplayInfo) return discountDisplayInfo
 
     if (!orderData) {
@@ -127,20 +112,15 @@ const OrderInfoDisplay = ({
     let expiresAt: string | null = null
     let percentage: number | null = null
 
-    // امتیاز باشگاه
     if (clubUsed > 0) {
       typeLabel = 'امتیاز باشگاه مشتریان'
-    }
-    // تخفیف خرید بعدی
-    else if (nextPurchaseDiscount) {
+    } else if (nextPurchaseDiscount) {
       expiresAt = nextPurchaseDiscount?.expires_at || null
       isExpired = isDiscountExpired(expiresAt)
       typeLabel = 'تخفیف خرید بعدی'
       code = nextPurchaseDiscount?.code || null
       percentage = nextPurchaseDiscount?.discount_percentage || null
-    }
-    // تخفیف عادی
-    else if (d) {
+    } else if (d) {
       expiresAt = d?.expires_at || d?.end_date || null
       isExpired = isDiscountExpired(expiresAt)
       code = d?.code ?? d?.discount_code ?? null
@@ -161,18 +141,14 @@ const OrderInfoDisplay = ({
       } else {
         typeLabel = 'تخفیف اعمال شده'
       }
-    }
-    // تخفیف بدون اطلاعات ولی مبلغ تخفیف دارد
-    else if (discountedPrice > 0) {
+    } else if (discountedPrice > 0) {
       typeLabel = 'تخفیف اعمال شده'
     }
 
-    // اگر discountTypeLabel از props اومده، اون رو جایگزین کن
     if (discountTypeLabel) {
       typeLabel = discountTypeLabel
     }
 
-    // اگر discountCode از props اومده، اون رو جایگزین کن
     if (discountCode !== undefined) {
       code = discountCode
     }
@@ -215,14 +191,15 @@ const OrderInfoDisplay = ({
             </Button>
           )}
 
-          {/* چاپ مجدد و پیش‌فاکتور: قبل و بعد از ثبت نهایی */}
-          <Button
-            variant="ghost"
-            onPress={onReprintClick}
-            isLoading={isPrintLoading && activePrintAction === 'reprint'}
-          >
-            {RE_PRINT_LABEL}
-          </Button>
+          {orderData?.status.slug === completeOrderSlug && (
+            <Button
+              variant="ghost"
+              onPress={onReprintClick}
+              isLoading={isPrintLoading && activePrintAction === 'reprint'}
+            >
+              {RE_PRINT_LABEL}
+            </Button>
+          )}
 
           <Button
             variant="ghost"
@@ -252,7 +229,6 @@ const OrderInfoDisplay = ({
             className="h-divider w-full shrink-0 border-none bg-default-200"
             role="separator"
           />
-
           <div className="flex justify-between">
             <dt className="text-small text-default-500">
               {ORDER_DESTINATION_LABEL}
@@ -263,7 +239,6 @@ const OrderInfoDisplay = ({
               </span>
             </dd>
           </div>
-
           <div className="flex justify-between">
             <dt className="text-small text-default-500">
               {CUSTOMER_NAME_LABEL}
@@ -278,7 +253,6 @@ const OrderInfoDisplay = ({
               </span>
             </dd>
           </div>
-
           {(orderData as any)?.reserve && (
             <div className="flex justify-between">
               <dt className="text-small text-default-500">{ROOM_LABEL}</dt>
@@ -289,7 +263,6 @@ const OrderInfoDisplay = ({
               </dd>
             </div>
           )}
-
           {(orderData as any)?.reserve && (
             <div className="flex justify-between">
               <dt className="text-small text-default-500">{RESERVE_LABEL}</dt>
@@ -300,7 +273,6 @@ const OrderInfoDisplay = ({
               </dd>
             </div>
           )}
-
           {orderData?.customer && (
             <div className="flex justify-between">
               <dt className="text-small text-default-500">{PHONE_LABEL}</dt>
@@ -311,7 +283,6 @@ const OrderInfoDisplay = ({
               </dd>
             </div>
           )}
-
           {(orderData as any)?.desc_number && (
             <div className="flex justify-between">
               <dt className="text-small text-default-500">
@@ -336,7 +307,6 @@ const OrderInfoDisplay = ({
             className="h-divider w-full shrink-0 border-none bg-default-200"
             role="separator"
           />
-
           <div className="flex flex-wrap justify-between">
             <dt className="h-fit text-small text-default-500">
               {ORDER_STATUS_LABEL}
@@ -349,7 +319,6 @@ const OrderInfoDisplay = ({
               )}
             </dd>
           </div>
-
           <div className="flex flex-wrap justify-between">
             <dt className="h-fit text-small text-default-500">
               {PAYMENT_METHOD_TEXT}
@@ -362,8 +331,6 @@ const OrderInfoDisplay = ({
               )}
             </dd>
           </div>
-
-          {/* نوع تخفیف با رنگ قرمز برای منقضی شده */}
           <div className="flex flex-wrap justify-between">
             <dt className="h-fit text-small text-default-500">نوع تخفیف</dt>
             <dd className="flex items-center gap-1 text-small font-semibold">
@@ -389,8 +356,6 @@ const OrderInfoDisplay = ({
               )}
             </dd>
           </div>
-
-          {/* کد تخفیف با رنگ قرمز و خط خورده برای منقضی شده */}
           <div className="flex flex-wrap justify-between">
             <dt className="h-fit text-small text-default-500">کد تخفیف</dt>
             <dd className="flex gap-1 text-small font-semibold text-default-700">
@@ -411,8 +376,6 @@ const OrderInfoDisplay = ({
               </Chip>
             </dd>
           </div>
-
-          {/* مبلغ تخفیف */}
           {computedDiscountInfo.amount > 0 && (
             <div className="flex flex-wrap justify-between">
               <dt className="h-fit text-small text-default-500">مبلغ تخفیف</dt>
@@ -432,8 +395,6 @@ const OrderInfoDisplay = ({
               </dd>
             </div>
           )}
-
-          {/* تاریخ انقضا (فقط اگر منقضی شده باشد) */}
           {computedDiscountInfo.isExpired && computedDiscountInfo.expiresAt && (
             <div className="flex flex-wrap justify-between">
               <dt className="h-fit text-small text-default-500">تاریخ انقضا</dt>
@@ -444,7 +405,6 @@ const OrderInfoDisplay = ({
               </dd>
             </div>
           )}
-
           <div className="flex flex-wrap justify-between">
             <dt className="h-fit text-small text-default-500">{POS_SERIAL}</dt>
             <dd className="flex gap-1 text-small font-semibold text-default-700">
@@ -457,7 +417,6 @@ const OrderInfoDisplay = ({
           </div>
         </dl>
 
-        {/* هشدار تخفیف منقضی شده */}
         {computedDiscountInfo.isExpired && (
           <div className="rounded-lg border-2 border-danger-300 bg-danger-50 p-3">
             <p className="text-sm font-semibold text-danger-700">
@@ -489,14 +448,15 @@ const OrderInfoDisplay = ({
             </Button>
           )}
 
-          {/* چاپ مجدد و پیش‌فاکتور: قبل و بعد از ثبت نهایی */}
-          <Button
-            variant="ghost"
-            onPress={onReprintClick}
-            isLoading={isPrintLoading && activePrintAction === 'reprint'}
-          >
-            {RE_PRINT_LABEL}
-          </Button>
+          {orderData?.status.slug === completeOrderSlug && (
+            <Button
+              variant="ghost"
+              onPress={onReprintClick}
+              isLoading={isPrintLoading && activePrintAction === 'reprint'}
+            >
+              {RE_PRINT_LABEL}
+            </Button>
+          )}
 
           <Button
             variant="ghost"
