@@ -14,114 +14,264 @@ import { DASHBOARD_PATH } from '@/routes/path'
 import { OrderResponseProps } from '@/types/orderType'
 import { Button, Chip, Tooltip } from '@heroui/react'
 import Link from 'next/link'
-import { useMemo, useState } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { TbEye } from 'react-icons/tb'
 import FormDatePicker from '../../ui/FormDatePicker'
 import FormInput from '../../ui/FormInput'
 import DataTable, { ColumnsData } from '../DataTable'
 import { useForm } from 'react-hook-form'
-import { parseDate } from '@internationalized/date'
+
+type ReportFilterFormValues = {
+  from: string
+  to: string
+  room_number: string
+}
 
 type SearchFormValues = {
   invoice_number: string
 }
 
+type StoredReportFilters = {
+  from: string | null
+  to: string | null
+  room_number: string | null
+  invoice_number: string | null
+}
+
 const STORAGE_KEY = 'report_table_filters'
 
-const loadFiltersFromStorage = (): Record<string, any> | null => {
+const loadFiltersFromStorage = (): StoredReportFilters | null => {
   if (typeof window === 'undefined') return null
+
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : null
+    return raw ? (JSON.parse(raw) as StoredReportFilters) : null
   } catch {
     return null
   }
 }
 
 const saveFiltersToStorage = (
-  filters: Record<string, any>,
+  filters: Record<string, string>,
   invoice: string
 ) => {
   if (typeof window === 'undefined') return
+
   try {
     sessionStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({
-        from: filters.from ? String(filters.from) : null,
-        to: filters.to ? String(filters.to) : null,
+        from: filters.from || null,
+        to: filters.to || null,
         room_number: filters.room_number || null,
         invoice_number: invoice || null,
-      })
+      } satisfies StoredReportFilters)
     )
   } catch {}
 }
 
-const safeParseDate = (value: string) => {
-  if (!value) return undefined
-  try {
-    return parseDate(value)
-  } catch {
-    return undefined
-  }
+const getFilterFromUrlOrStorage = (
+  searchParams: URLSearchParams,
+  key: keyof StoredReportFilters,
+  storedFilters: StoredReportFilters | null
+) => {
+  const urlValue = searchParams.get(key)
+  if (urlValue !== null) return urlValue
+  return storedFilters?.[key] ?? ''
 }
 
 const ReportTable = () => {
-  const storedFilters = useMemo(() => loadFiltersFromStorage(), [])
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
 
-  const [filters, setFilters] = useState<Record<string, any>>(() => {
-    if (!storedFilters) return {}
-    const f: Record<string, any> = {}
-    if (storedFilters.from) f.from = storedFilters.from
-    if (storedFilters.to) f.to = storedFilters.to
-    if (storedFilters.room_number) f.room_number = storedFilters.room_number
-    return f
-  })
+  const [filters, setFilters] = useState<Record<string, string>>({})
   const [currentKey, setCurrentKey] = useState(0)
-  const [invoiceSearch, setInvoiceSearch] = useState(
-    storedFilters?.invoice_number ?? ''
-  )
+  const [invoiceSearch, setInvoiceSearch] = useState('')
+  const [filtersRestored, setFiltersRestored] = useState(false)
 
-  const methods = useForm({
+  const methods = useForm<ReportFilterFormValues>({
     defaultValues: {
-      from: storedFilters?.from ? safeParseDate(storedFilters.from) : undefined,
-      to: storedFilters?.to ? safeParseDate(storedFilters.to) : undefined,
-      room_number: storedFilters?.room_number ?? '',
+      from: '',
+      to: '',
+      room_number: '',
     },
   })
 
   const searchMethods = useForm<SearchFormValues>({
     mode: 'onChange',
     defaultValues: {
-      invoice_number: storedFilters?.invoice_number ?? '',
+      invoice_number: '',
     },
   })
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleFormSubmit = (data: any) => {
-    const updatedFilters = { ...filters, ...data }
+  const updateReportUrl = useCallback(
+    (
+      nextFilters: Record<string, string>,
+      nextInvoice: string,
+      resetPage = true
+    ) => {
+      const params = new URLSearchParams(searchParams.toString())
+
+      const setOrDelete = (key: string, value: string) => {
+        const normalizedValue = value.trim()
+        if (normalizedValue) params.set(key, normalizedValue)
+        else params.delete(key)
+      }
+
+      setOrDelete('from', nextFilters.from ?? '')
+      setOrDelete('to', nextFilters.to ?? '')
+      setOrDelete('room_number', nextFilters.room_number ?? '')
+      setOrDelete('invoice_number', nextInvoice)
+
+      if (resetPage) {
+        params.set('page', '1')
+      }
+
+      const queryString = params.toString()
+      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+        scroll: false,
+      })
+    },
+    [pathname, router, searchParams]
+  )
+
+  useEffect(() => {
+    const storedFilters = loadFiltersFromStorage()
+    const currentSearchParams = new URLSearchParams(searchParams.toString())
+
+    const restoredFilters: Record<string, string> = {
+      from: getFilterFromUrlOrStorage(
+        currentSearchParams,
+        'from',
+        storedFilters
+      ),
+      to: getFilterFromUrlOrStorage(currentSearchParams, 'to', storedFilters),
+      room_number: getFilterFromUrlOrStorage(
+        currentSearchParams,
+        'room_number',
+        storedFilters
+      ),
+    }
+
+    const restoredInvoice = getFilterFromUrlOrStorage(
+      currentSearchParams,
+      'invoice_number',
+      storedFilters
+    )
+
+    setFilters(restoredFilters)
+    setInvoiceSearch(restoredInvoice)
+
+    // FormDatePicker مقدار Gregorian را به صورت رشته YYYY-MM-DD نگه می‌دارد.
+    // بنابراین همان رشته ذخیره‌شده را مستقیم به فرم برمی‌گردانیم.
+    methods.reset({
+      from: restoredFilters.from,
+      to: restoredFilters.to,
+      room_number: restoredFilters.room_number,
+    })
+
+    searchMethods.reset({
+      invoice_number: restoredInvoice,
+    })
+
+    saveFiltersToStorage(restoredFilters, restoredInvoice)
+
+    // اگر کاربر از مسیر دیگری دوباره وارد گزارش شده باشد، فیلترهای ذخیره‌شده
+    // را وارد URL می‌کنیم تا UI، درخواست API و pagination یک منبع مشترک داشته باشند.
+    const normalizedParams = new URLSearchParams(searchParams.toString())
+    const setOrDelete = (key: string, value: string) => {
+      if (value.trim()) normalizedParams.set(key, value.trim())
+      else normalizedParams.delete(key)
+    }
+
+    setOrDelete('from', restoredFilters.from)
+    setOrDelete('to', restoredFilters.to)
+    setOrDelete('room_number', restoredFilters.room_number)
+    setOrDelete('invoice_number', restoredInvoice)
+
+    if (normalizedParams.toString() !== searchParams.toString()) {
+      const queryString = normalizedParams.toString()
+      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+        scroll: false,
+      })
+    }
+
+    setFiltersRestored(true)
+    // این restore فقط یک بار در mount انجام می‌شود.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const handleFormSubmit = (data: ReportFilterFormValues) => {
+    const updatedFilters: Record<string, string> = {
+      from: data.from ?? '',
+      to: data.to ?? '',
+      room_number: String(data.room_number ?? '').trim(),
+    }
+
     setFilters(updatedFilters)
-    setCurrentKey((prev) => prev + 1)
     saveFiltersToStorage(updatedFilters, invoiceSearch)
+    updateReportUrl(updatedFilters, invoiceSearch)
+    setCurrentKey((prev) => prev + 1)
   }
 
   const handleSearchSubmit = (data: SearchFormValues) => {
-    const value = (data.invoice_number || '').trim()
+    const value = String(data.invoice_number ?? '').trim()
+
     setInvoiceSearch(value)
-    setCurrentKey((prev) => prev + 1)
     saveFiltersToStorage(filters, value)
+    updateReportUrl(filters, value)
+    setCurrentKey((prev) => prev + 1)
+  }
+
+  const handleClearFilters = () => {
+    const emptyFilters = {
+      from: '',
+      to: '',
+      room_number: '',
+    }
+
+    setFilters(emptyFilters)
+    setInvoiceSearch('')
+    methods.reset(emptyFilters)
+    searchMethods.reset({ invoice_number: '' })
+
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem(STORAGE_KEY)
+    }
+
+    updateReportUrl(emptyFilters, '')
+    setCurrentKey((prev) => prev + 1)
   }
 
   const extraFilterParameters = useMemo(() => {
-    const params: Record<string, string | number> = {
-      ...filters,
-    }
+    const params: Record<string, string | number> = {}
 
-    if (invoiceSearch.trim()) {
-      params.invoice_number = String(invoiceSearch.trim())
-    }
+    if (filters.from) params.from = filters.from
+    if (filters.to) params.to = filters.to
+    if (filters.room_number) params.room_number = filters.room_number
+    if (invoiceSearch.trim()) params.invoice_number = invoiceSearch.trim()
 
     return params
   }, [filters, invoiceSearch])
+
+  const reportReturnUrl = useMemo(() => {
+    const params = new URLSearchParams(searchParams.toString())
+
+    const setOrDelete = (key: string, value: string) => {
+      if (value.trim()) params.set(key, value.trim())
+      else params.delete(key)
+    }
+
+    setOrDelete('from', filters.from ?? '')
+    setOrDelete('to', filters.to ?? '')
+    setOrDelete('room_number', filters.room_number ?? '')
+    setOrDelete('invoice_number', invoiceSearch)
+
+    const queryString = params.toString()
+    return queryString ? `${pathname}?${queryString}` : pathname
+  }, [filters, invoiceSearch, pathname, searchParams])
 
   const columns: ColumnsData<OrderResponseProps>[] = [
     {
@@ -232,7 +382,9 @@ const ReportTable = () => {
               isIconOnly
               variant="light"
               as={Link}
-              href={DASHBOARD_PATH.REPORT_DETAIL + `?order_id=${order.id}`}
+              href={`${DASHBOARD_PATH.REPORT_DETAIL}?order_id=${order.id}&return_to=${encodeURIComponent(
+                reportReturnUrl
+              )}`}
               size="sm"
               className="text-lg text-default-400 active:opacity-50"
             >
@@ -298,17 +450,35 @@ const ReportTable = () => {
         </div>
       </div>
 
-      <h2 className="text-xl font-bold text-default-700">
-        {ORDERS_LIST_LABEL}
-      </h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xl font-bold text-default-700">
+          {ORDERS_LIST_LABEL}
+        </h2>
 
-      <DataTable
-        columns={columns}
-        apiMethods={ORDER_API}
-        key={currentKey}
-        dataTableId="report_table"
-        extraFilterParameters={extraFilterParameters}
-      />
+        {(filters.from ||
+          filters.to ||
+          filters.room_number ||
+          invoiceSearch) && (
+          <Button
+            color="danger"
+            variant="flat"
+            size="sm"
+            onPress={handleClearFilters}
+          >
+            پاک کردن همه فیلترها
+          </Button>
+        )}
+      </div>
+
+      {filtersRestored && (
+        <DataTable
+          columns={columns}
+          apiMethods={ORDER_API}
+          key={currentKey}
+          dataTableId="report_table"
+          extraFilterParameters={extraFilterParameters}
+        />
+      )}
     </div>
   )
 }

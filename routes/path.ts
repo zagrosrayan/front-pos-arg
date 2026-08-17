@@ -19,6 +19,8 @@ export const DASHBOARD_PATH = {
   ASSIGN_ROLE: '/v1/dashboard/role/assign',
   FOOD: '/v1/dashboard/food',
   CUSTOMER: '/v1/dashboard/customer',
+  CUSTOMER_REPORT: '/v1/dashboard/report/customer',
+  CUSTOMER_REPORT_DETAIL: '/v1/dashboard/report/customer/detail',
   ARTICLE: '/v1/dashboard/article',
   // اضافه شده
   ROLES: '/v1/dashboard/roles',

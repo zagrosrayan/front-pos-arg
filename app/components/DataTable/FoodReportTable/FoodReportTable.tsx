@@ -24,7 +24,7 @@ import {
   DropdownMenu,
   DropdownItem,
 } from '@heroui/react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import FormDatePicker from '../../ui/FormDatePicker'
 import FormSelect from '../../ui/FormSelect'
@@ -34,6 +34,15 @@ import { IoChevronDownCircleOutline } from 'react-icons/io5'
 
 type SearchFormValues = {
   invoice_number: string
+}
+
+type FoodReportGrandTotal = {
+  total_quantity: number
+  total_service: number
+  total_sale: number
+  total_discount: number
+  total_tax: number
+  total_final: number
 }
 
 const FoodReportTable = () => {
@@ -50,6 +59,51 @@ const FoodReportTable = () => {
       invoice_number: '',
     },
   })
+
+  const [grandTotal, setGrandTotal] = useState<FoodReportGrandTotal | null>(
+    null
+  )
+
+  const profitManagerId = methods.watch('profit_manager_id')
+  const articleId = methods.watch('article_id')
+  const previousProfitManagerId = useRef(profitManagerId)
+  const previousArticleId = useRef(articleId)
+
+  useEffect(() => {
+    if (previousProfitManagerId.current !== profitManagerId) {
+      methods.setValue('article_id', null)
+      methods.setValue('food_id', null)
+      previousProfitManagerId.current = profitManagerId
+    }
+  }, [methods, profitManagerId])
+
+  useEffect(() => {
+    if (previousArticleId.current !== articleId) {
+      methods.setValue('food_id', null)
+      previousArticleId.current = articleId
+    }
+  }, [articleId, methods])
+
+  const articleFilterParameters = useMemo(
+    () =>
+      profitManagerId
+        ? { profit_manager_id: profitManagerId as string | number }
+        : undefined,
+    [profitManagerId]
+  )
+
+  const foodFilterParameters = useMemo(() => {
+    const params: Record<string, string | number> = {}
+
+    if (profitManagerId) {
+      params.profit_manager_id = profitManagerId as string | number
+    }
+    if (articleId) {
+      params.article_id = articleId as string | number
+    }
+
+    return Object.keys(params).length ? params : undefined
+  }, [articleId, profitManagerId])
 
   const handleFormSubmit = (data: any) => {
     const updatedFilters = { ...filters, ...data }
@@ -415,13 +469,19 @@ const FoodReportTable = () => {
               label={PROFIT_MANAGER_LABEL}
             />
             <FormSelect
+              key={`article-${String(profitManagerId ?? 'all')}`}
               name="article_id"
               apiMethods={ARTICLE_API}
+              extraFilterParameters={articleFilterParameters}
               label={CATEGORY_FOOD_LABEL}
             />
             <FormSelect
+              key={`food-${String(profitManagerId ?? 'all')}-${String(
+                articleId ?? 'all'
+              )}`}
               name="food_id"
               apiMethods={FOOD_API}
+              extraFilterParameters={foodFilterParameters}
               label={FOOD_LABEL}
             />
             <Button
@@ -507,8 +567,68 @@ const FoodReportTable = () => {
         key={currentKey}
         dataTableId="report_table"
         extraFilterParameters={extraFilterParameters}
+        setExtraFields={(extraFields) =>
+          setGrandTotal(extraFields?.report_total ?? null)
+        }
         isStriped
       />
+
+      {grandTotal && (
+        <div className="overflow-x-auto rounded-small border border-default-200">
+          <table className="min-w-full border-collapse text-center text-sm">
+            <thead className="bg-default-100 text-default-700">
+              <tr>
+                <th className="whitespace-nowrap border border-default-200 px-4 py-3">
+                  عنوان
+                </th>
+                <th className="whitespace-nowrap border border-default-200 px-4 py-3">
+                  جمع تعداد
+                </th>
+                <th className="whitespace-nowrap border border-default-200 px-4 py-3">
+                  جمع حق سرویس (ریال)
+                </th>
+                <th className="whitespace-nowrap border border-default-200 px-4 py-3">
+                  جمع قیمت فروش (ریال)
+                </th>
+                <th className="whitespace-nowrap border border-default-200 px-4 py-3">
+                  جمع کل تخفیف (ریال)
+                </th>
+                <th className="whitespace-nowrap border border-default-200 px-4 py-3">
+                  جمع کل مالیات (ریال)
+                </th>
+                <th className="whitespace-nowrap border border-default-200 px-4 py-3">
+                  جمع کل نهایی (ریال)
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="font-bold text-default-800">
+                <td className="whitespace-nowrap border border-default-200 px-4 py-3">
+                  جمع کل گزارش
+                </td>
+                <td className="whitespace-nowrap border border-default-200 px-4 py-3">
+                  {Number(grandTotal.total_quantity).toLocaleString('fa-IR')}
+                </td>
+                <td className="whitespace-nowrap border border-default-200 px-4 py-3">
+                  {Number(grandTotal.total_service).toLocaleString('fa-IR')}
+                </td>
+                <td className="whitespace-nowrap border border-default-200 px-4 py-3">
+                  {Number(grandTotal.total_sale).toLocaleString('fa-IR')}
+                </td>
+                <td className="whitespace-nowrap border border-default-200 px-4 py-3">
+                  {Number(grandTotal.total_discount).toLocaleString('fa-IR')}
+                </td>
+                <td className="whitespace-nowrap border border-default-200 px-4 py-3">
+                  {Number(grandTotal.total_tax).toLocaleString('fa-IR')}
+                </td>
+                <td className="whitespace-nowrap border border-default-200 px-4 py-3">
+                  {Number(grandTotal.total_final).toLocaleString('fa-IR')}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   )
 }

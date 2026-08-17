@@ -42,7 +42,15 @@ const completeOrderSlug = 'order-status-complete'
 
 const isDiscountExpired = (expiresAt: string | null | undefined): boolean => {
   if (!expiresAt) return false
-  return new Date(expiresAt) < new Date()
+
+  const parsed = new Date(expiresAt)
+  if (Number.isNaN(parsed.getTime())) return false
+
+  // تاریخ انقضا تا پایان همان روز معتبر است؛ با بک‌اند یکسان.
+  const endOfExpiryDay = new Date(parsed)
+  endOfExpiryDay.setHours(23, 59, 59, 999)
+
+  return new Date() > endOfExpiryDay
 }
 
 const resolveDiscountTypeLabelFromOrder = (
@@ -53,16 +61,10 @@ const resolveDiscountTypeLabelFromOrder = (
   const clubUsed = Number((order as any)?.club_points_used ?? 0)
   if (clubUsed > 0) return { label: 'امتیاز باشگاه مشتریان', isExpired: false }
 
-  const nextPurchaseDiscount = (order as any)?.next_purchase_discount
-  if (nextPurchaseDiscount) {
-    const expiresAt = nextPurchaseDiscount?.expires_at || null
-    const expired = isDiscountExpired(expiresAt)
-    return {
-      label: expired ? 'تخفیف خرید بعدی (منقضی شده)' : 'تخفیف خرید بعدی',
-      isExpired: expired,
-    }
-  }
-
+  // تخفیف «اعمال‌شده روی همین سفارش» فقط از relation discount تشخیص داده
+  // می‌شود. next_purchase_discount مربوط به تنظیماتی است که می‌تواند برای
+  // صدور کد خرید بعدی استفاده شده باشد و نباید به اشتباه تخفیف مصرف‌شده
+  // در این سفارش تلقی شود.
   const d: any = (order as any)?.discount
   if (d) {
     const expiresAt = d?.expires_at || d?.end_date || null
@@ -74,7 +76,9 @@ const resolveDiscountTypeLabelFromOrder = (
 
     let label = 'تخفیف اعمال شده'
 
-    if (name) {
+    if (scope === 'next_purchase') {
+      label = 'تخفیف خرید بعدی'
+    } else if (name) {
       label = name
     } else if (slug.includes('global') || scope === 'global') {
       label = 'تخفیف همگانی'
@@ -133,7 +137,10 @@ const getDiscountDisplayInfo = (
 
   const d: any = (order as any)?.discount
   const expiresAt = d?.expires_at || d?.end_date || null
-  const percentage = d?.discount_percentage || d?.percentage || null
+  const percentage =
+    d?.discount_type === DiscountType.percentage
+      ? Number(d?.discount_value ?? 0)
+      : null
 
   return {
     typeLabel: label,
@@ -152,10 +159,10 @@ const hydrateDiscountIntoForm = (
   if (!order) return
 
   const clubUsed = Number((order as any)?.club_points_used ?? 0)
-  const nextPurchase = Boolean((order as any)?.next_purchase_discount)
   const d: any = (order as any)?.discount
   const code = d?.code ?? null
   const scope = String(d?.scope ?? '')
+  const nextPurchase = scope === 'next_purchase'
   const slug = String(d?.slug ?? '')
 
   methods.setValue('selected_discount_type', '' as any)
@@ -175,6 +182,7 @@ const hydrateDiscountIntoForm = (
   if (nextPurchase) {
     methods.setValue('selected_discount_type', '4' as any)
     methods.setValue('use_next_purchase_discount', true as any)
+    methods.setValue('discount_next_purchase_code', code as any)
     return
   }
 

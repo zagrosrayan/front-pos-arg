@@ -6,6 +6,12 @@ export const CUSTOMER_API = {
   }),
 }
 
+export const CUSTOMER_ORDERS_API = (customerId: string | number) => ({
+  getAll: (): AxiosRequestConfig => ({
+    url: `/v1/customers/${customerId}/orders`,
+  }),
+})
+
 export const CUSTOMER_REPORT_API = {
   getAll: (): AxiosRequestConfig => ({
     url: '/v1/reports/customers',

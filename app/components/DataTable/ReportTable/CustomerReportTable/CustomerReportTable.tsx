@@ -1,4 +1,5 @@
 'use client'
+
 import {
   CUSTOMER_LIST_LABEL,
   CUSTOMER_NAME_LABEL,
@@ -6,13 +7,18 @@ import {
   FROM_DATE_LABEL,
   PHONE_LABEL,
   REPORT_LABEL,
-  // ROOM_LABEL,
   TO_DATE_LABEL,
 } from '@/app/constant/label'
 import { REPORTING_TEXT } from '@/app/constant/text'
+import FormDatePicker from '@/app/components/ui/FormDatePicker'
+import FormInput from '@/app/components/ui/FormInput'
+import FormNumberInput from '@/app/components/ui/FormNumberInput'
+import FormSelect from '@/app/components/ui/FormSelect'
 import FormLayout from '@/app/layout/FormLayout'
+import { downloadFile } from '@/lib/axios'
 import { CUSTOMER_REPORT_API } from '@/routes/api/customer'
-// import { DASHBOARD_PATH } from '@/routes/path'
+import { FOOD_API } from '@/routes/api/food'
+import { DASHBOARD_PATH } from '@/routes/path'
 import { CustomersResponseProps } from '@/types/customerType'
 import {
   Button,
@@ -21,62 +27,168 @@ import {
   DropdownItem,
   DropdownMenu,
   DropdownTrigger,
-  Modal,
-  ModalBody,
-  ModalContent,
-  ModalHeader,
-  useDisclosure,
+  Tooltip,
 } from '@heroui/react'
-// import Link from 'next/link'
-import { useState } from 'react'
-// import { TbEye } from 'react-icons/tb'
-import FormDatePicker from '@/app/components/ui/FormDatePicker'
-import FormInput from '@/app/components/ui/FormInput'
-import FormSelect from '@/app/components/ui/FormSelect'
-import { apiRequest, downloadFile } from '@/lib/axios'
-import { FOOD_API } from '@/routes/api/food'
+import Link from 'next/link'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { IoChevronDownCircleOutline } from 'react-icons/io5'
+import { TbEye } from 'react-icons/tb'
 import DataTable, { ColumnsData } from '../../DataTable'
 
-import FormNumberInput from '@/app/components/ui/FormNumberInput'
-import FormTextArea from '@/app/components/ui/FormTextArea'
-import { SMS_API } from '@/routes/api/sms'
-import { toast } from 'react-toastify'
+type CustomerReportFilterValues = {
+  name?: string
+  phone?: string
+  month_since_last_purchase?: string | number | null
+  min_points?: string | number | null
+  max_points?: string | number | null
+  food_id?: string | number | { id: string | number; name: string } | null
+  order_from?: string | null
+  order_to?: string | null
+}
+
+const FILTER_KEYS = [
+  'name',
+  'phone',
+  'month_since_last_purchase',
+  'min_points',
+  'max_points',
+  'food_id',
+  'food_label',
+  'order_from',
+  'order_to',
+]
 
 const CustomerReportTable = () => {
-  const [filters, setFilters] = useState({}) // Initial filters
-  const [currentKey, setCurrentKey] = useState(0) // Initial filters
-  const methods = useForm()
-  const smsMethods = useForm()
-  const bulkSmsMethods = useForm()
-  const [isDownload, setIsDownload] = useState(false) // Initial filters
-  const [isLoading, setIsLoading] = useState(false) // Initial filters
-  const [selectedOption, setSelectedOption] = useState(new Set(['pdf']))
-  const [selectedCustomer, setSelectedCustomer] =
-    useState<CustomersResponseProps | null>(null)
-  const [selectedItems, setSelectedItems] = useState<
-    CustomersResponseProps[] | []
-  >([])
-  const { isOpen, onOpen, onOpenChange, onClose } = useDisclosure()
-  const {
-    isOpen: isBulkSmsOpen,
-    onOpen: openBulkSms,
-    onOpenChange: bulkSmsOpenChange,
-    onClose: closeBulkSms,
-  } = useDisclosure()
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleFormSubmit = (data: any) => {
-    const updatedFilters = { ...filters, ...data }
-    setFilters(updatedFilters)
-    setSelectedItems([])
-    setCurrentKey((prev) => prev + 1)
+  const methods = useForm<CustomerReportFilterValues>({
+    defaultValues: {
+      name: '',
+      phone: '',
+      month_since_last_purchase: null,
+      min_points: null,
+      max_points: null,
+      food_id: null,
+      order_from: '',
+      order_to: '',
+    },
+  })
+
+  const [filters, setFilters] = useState<Record<string, string | number>>({})
+  const [currentKey, setCurrentKey] = useState(0)
+  const [isDownload, setIsDownload] = useState(false)
+  const [selectedOption, setSelectedOption] = useState(new Set(['pdf']))
+  const [filtersRestored, setFiltersRestored] = useState(false)
+  const [selectedFoodLabel, setSelectedFoodLabel] = useState('')
+
+  useEffect(() => {
+    const foodId = searchParams.get('food_id') ?? ''
+    const foodLabel = searchParams.get('food_label') ?? ''
+
+    const restoredFormValues: CustomerReportFilterValues = {
+      name: searchParams.get('name') ?? '',
+      phone: searchParams.get('phone') ?? '',
+      month_since_last_purchase:
+        searchParams.get('month_since_last_purchase') ?? null,
+      min_points: searchParams.get('min_points') ?? null,
+      max_points: searchParams.get('max_points') ?? null,
+      food_id:
+        foodId && foodLabel
+          ? {
+              id: foodId,
+              name: foodLabel,
+            }
+          : foodId || null,
+      order_from: searchParams.get('order_from') ?? '',
+      order_to: searchParams.get('order_to') ?? '',
+    }
+
+    methods.reset(restoredFormValues)
+    setSelectedFoodLabel(foodLabel)
+
+    const restoredFilters: Record<string, string | number> = {}
+
+    for (const key of [
+      'name',
+      'phone',
+      'month_since_last_purchase',
+      'min_points',
+      'max_points',
+      'food_id',
+      'order_from',
+      'order_to',
+    ]) {
+      const value = searchParams.get(key)
+      if (value) restoredFilters[key] = value
+    }
+
+    setFilters(restoredFilters)
+    setFiltersRestored(true)
+    // فقط هنگام mount، URL به فرم hydrate می‌شود.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const normalizeFoodId = (
+    value: CustomerReportFilterValues['food_id']
+  ): string => {
+    if (value && typeof value === 'object') {
+      return String(value.id ?? '')
+    }
+
+    return value === null || value === undefined ? '' : String(value)
   }
 
-  const handleOpenSmsDialog = (customer: CustomersResponseProps) => {
-    setSelectedCustomer(customer)
-    onOpen()
+  const updateUrl = (
+    nextFilters: Record<string, string | number>,
+    foodLabel: string
+  ) => {
+    const params = new URLSearchParams(searchParams.toString())
+
+    FILTER_KEYS.forEach((key) => params.delete(key))
+
+    Object.entries(nextFilters).forEach(([key, value]) => {
+      const normalized = String(value ?? '').trim()
+      if (normalized) params.set(key, normalized)
+    })
+
+    if (nextFilters.food_id && foodLabel.trim()) {
+      params.set('food_label', foodLabel.trim())
+    }
+
+    params.set('page', '1')
+
+    const queryString = params.toString()
+    router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      scroll: false,
+    })
+  }
+
+  const handleFormSubmit = (data: CustomerReportFilterValues) => {
+    const nextFilters: Record<string, string | number> = {}
+
+    const values: Record<string, unknown> = {
+      name: data.name,
+      phone: data.phone,
+      month_since_last_purchase: data.month_since_last_purchase,
+      min_points: data.min_points,
+      max_points: data.max_points,
+      food_id: normalizeFoodId(data.food_id),
+      order_from: data.order_from,
+      order_to: data.order_to,
+    }
+
+    Object.entries(values).forEach(([key, value]) => {
+      const normalized = String(value ?? '').trim()
+      if (normalized) nextFilters[key] = normalized
+    })
+
+    setFilters(nextFilters)
+    updateUrl(nextFilters, selectedFoodLabel)
+    setCurrentKey((prev) => prev + 1)
   }
 
   const handleDownload = async () => {
@@ -84,8 +196,6 @@ const CustomerReportTable = () => {
       setIsDownload(true)
 
       const request = CUSTOMER_REPORT_API.getAll()
-
-      // Build dynamic params
       request.params = {
         ...filters,
         pdf: selectedOption.has('pdf') ? 1 : undefined,
@@ -105,141 +215,101 @@ const CustomerReportTable = () => {
     }
   }
 
-  const handleSendSms = async (data: any) => {
-    try {
-      setIsLoading(true)
-      if (selectedCustomer?.phone) {
-        data.phone = selectedCustomer?.phone
-      } else {
-        toast.error('برای این کاربر شماره موبایلی ثبت نشده است')
-        onClose()
-        smsMethods.reset()
-        return
-      }
-      await apiRequest(SMS_API.sendSingle(data))
-      onClose()
-      smsMethods.reset()
-      toast.success('پیامک با موفقیت ارسال شد')
-    } catch (error) {
-      console.error(error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleSendBulkSms = async (data: any) => {
-    try {
-      setIsLoading(true)
-
-      const phoneNumbers = selectedItems
-        .map((item) => item.phone)
-        .filter(Boolean)
-      data.phones = phoneNumbers
-      await apiRequest(SMS_API.sendBulk(data))
-      closeBulkSms()
-      bulkSmsMethods.reset()
-      setSelectedItems([])
-      toast.success('پیامک با موفقیت ارسال شد')
-    } catch (error) {
-      console.error(error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  const reportReturnUrl = useMemo(() => {
+    const queryString = searchParams.toString()
+    return queryString ? `${pathname}?${queryString}` : pathname
+  }, [pathname, searchParams])
 
   const columns: ColumnsData<CustomersResponseProps>[] = [
     {
       name: 'کد مشتری',
       uid: 'code',
-      render: (customer: CustomersResponseProps) => <span>{customer.id}</span>,
+      render: (customer) => <span>{customer.id}</span>,
     },
-
     {
       name: 'نام مشتری',
       uid: 'name',
-      render: (customer: CustomersResponseProps) => (
+      render: (customer) => (
         <span className="whitespace-nowrap text-amber-600">
           {customer.name ?? '-------'}
         </span>
       ),
     },
-
     {
       name: 'شماره موبایل',
       uid: 'phone',
-      render: (customer: CustomersResponseProps) => (
-        <span>{customer.phone ?? '-------'}</span>
-      ),
+      render: (customer) => <span>{customer.phone ?? '-------'}</span>,
     },
-
     {
       name: 'سفارش‌های در انتظار',
       uid: 'pendingOrderCount',
-      render: (customer: CustomersResponseProps) => (
+      render: (customer) => (
         <span>
-          {customer.pending_order_count.toLocaleString('fa-IR') ?? '-------'}
+          {Number(customer.pending_order_count ?? 0).toLocaleString('fa-IR')}
         </span>
       ),
     },
     {
       name: 'مجموع مبلغ سفارش‌های در انتظار',
-      uid: 'pendingOrderTotal"',
-      render: (customer: CustomersResponseProps) => (
+      uid: 'pendingOrderTotal',
+      render: (customer) => (
         <span>
-          {customer.pending_order_total.toLocaleString('fa-IR') ?? '-------'}
+          {Number(customer.pending_order_total ?? 0).toLocaleString('fa-IR')}
         </span>
       ),
     },
     {
       name: 'تعداد سفارش‌های تکمیل‌شده',
-      uid: 'completeOrderCount"',
-      render: (customer: CustomersResponseProps) => (
+      uid: 'completeOrderCount',
+      render: (customer) => (
         <span>
-          {customer.complete_order_count.toLocaleString('fa-IR') ?? '-------'}
+          {Number(customer.complete_order_count ?? 0).toLocaleString('fa-IR')}
         </span>
       ),
     },
-
     {
       name: 'مجموع مبلغ سفارش‌های تکمیل‌شده',
-      uid: 'completeOrderTotal"',
-      render: (customer: CustomersResponseProps) => (
+      uid: 'completeOrderTotal',
+      render: (customer) => (
         <span>
-          {Number(customer.complete_order_total).toLocaleString('fa-IR')}
+          {Number(customer.complete_order_total ?? 0).toLocaleString('fa-IR')}
         </span>
       ),
     },
     {
       name: 'امتیاز',
-      uid: 'points"',
-      render: (customer: CustomersResponseProps) => (
+      uid: 'points',
+      render: (customer) => (
         <span>
-          {customer.total_points.toLocaleString('fa-IR') ?? '-------'}
+          {Number(customer.total_points ?? 0).toLocaleString('fa-IR')}
         </span>
       ),
     },
-
     {
-      name: 'تاریخ آخرین سفارش ',
+      name: 'تاریخ آخرین سفارش',
       uid: 'lastOrderDate',
-      render: (customer: CustomersResponseProps) => (
-        <span dir="ltr">
-          {new Date(customer.created_at as string).toLocaleString('fa-IR')}
-        </span>
+      render: (customer) => (
+        <span dir="ltr">{customer.last_order_date ?? '-------'}</span>
       ),
     },
     {
-      name: 'عملیات ',
+      name: 'عملیات',
       uid: 'action',
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      render: (customer: CustomersResponseProps) => (
-        <Button
-          color="success"
-          className="text-white"
-          onPress={() => handleOpenSmsDialog(customer)}
-        >
-          ارسال پیامک
-        </Button>
+      render: (customer) => (
+        <Tooltip content="جزئیات مشتری" closeDelay={0} delay={0}>
+          <Button
+            isIconOnly
+            variant="light"
+            as={Link}
+            href={`${DASHBOARD_PATH.CUSTOMER_REPORT_DETAIL}?customer_id=${
+              customer.id
+            }&return_to=${encodeURIComponent(reportReturnUrl)}`}
+            size="sm"
+            className="text-lg text-default-400 active:opacity-50"
+          >
+            <TbEye />
+          </Button>
+        </Tooltip>
       ),
     },
   ]
@@ -277,9 +347,12 @@ const CustomerReportTable = () => {
               name="food_id"
               apiMethods={FOOD_API}
               label={FOOD_LABEL}
+              onSelectedItemChange={(item) =>
+                setSelectedFoodLabel(item?.name ? String(item.name) : '')
+              }
             />
-            <FormDatePicker name="no_order_from" label={FROM_DATE_LABEL} />
-            <FormDatePicker name="no_order_to" label={TO_DATE_LABEL} />
+            <FormDatePicker name="order_from" label={FROM_DATE_LABEL} />
+            <FormDatePicker name="order_to" label={TO_DATE_LABEL} />
 
             <Button
               color="success"
@@ -293,6 +366,7 @@ const CustomerReportTable = () => {
           </FormLayout>
         </div>
       </div>
+
       <ButtonGroup variant="flat" className="mr-auto w-fit text-white">
         <Button color="success" onPress={handleDownload} isLoading={isDownload}>
           {labelsMap[selectedOptionValue]}
@@ -310,133 +384,29 @@ const CustomerReportTable = () => {
             selectedKeys={selectedOption}
             selectionMode="single"
             onSelectionChange={(keys) => {
-              // keys may be "all" or a Selection object, so convert safely
-              if (keys === 'all') return // you don't want "all" in single selection
-
-              // NextUI gives Selection => convert to Set<string>
+              if (keys === 'all') return
               setSelectedOption(new Set(keys as Set<string>))
             }}
           >
-            <DropdownItem key="pdf">{labelsMap['pdf']}</DropdownItem>
-            <DropdownItem key="excel">{labelsMap['excel']}</DropdownItem>
+            <DropdownItem key="pdf">{labelsMap.pdf}</DropdownItem>
+            <DropdownItem key="excel">{labelsMap.excel}</DropdownItem>
           </DropdownMenu>
         </Dropdown>
       </ButtonGroup>
+
       <h2 className="text-xl font-bold text-default-700">
         {CUSTOMER_LIST_LABEL}
       </h2>
-      <Button
-        color="primary"
-        onPress={openBulkSms}
-        className="mr-auto w-fit text-white"
-      >
-        ارسال پیامک گروهی
-      </Button>
-      <DataTable
-        columns={columns}
-        apiMethods={CUSTOMER_REPORT_API}
-        key={currentKey}
-        selectionMode="multiple"
-        dataTableId="cusromer_table"
-        extraFilterParameters={filters}
-        onSelectItems={(items) => {
-          setSelectedItems(items)
-        }}
-        selectedItems={selectedItems}
-      />
-      <Modal isOpen={isOpen} placement="top-center" onOpenChange={onOpenChange}>
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader className="flex flex-col gap-1">
-                ارسال پیامک
-              </ModalHeader>
-              <ModalBody>
-                <FormLayout
-                  methods={smsMethods}
-                  onSubmit={handleSendSms}
-                  className="space-y-5"
-                >
-                  <div className="mb-3 flex flex-col gap-5">
-                    <p className="text-lg font-semibold">اطلاعات مشتری : </p>
-                    <div className="flex flex-col gap-2">
-                      <span>نام : {selectedCustomer?.name}</span>
-                      <span>شماره موبایل : {selectedCustomer?.phone}</span>
-                    </div>
-                  </div>
-                  <FormTextArea name="text" label="متن پیامک" />
-                  <div className="flex flex-row-reverse justify-start gap-5">
-                    <Button
-                      type="submit"
-                      color="success"
-                      variant="flat"
-                      isLoading={isLoading}
-                    >
-                      ارسال
-                    </Button>
-                    <Button
-                      type="button"
-                      color="danger"
-                      variant="flat"
-                      onPress={() => {
-                        onClose()
-                        smsMethods.reset()
-                      }}
-                    >
-                      بستن
-                    </Button>
-                  </div>
-                </FormLayout>
-              </ModalBody>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
-      <Modal
-        isOpen={isBulkSmsOpen}
-        placement="top-center"
-        onOpenChange={bulkSmsOpenChange}
-      >
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader className="flex flex-col gap-1">
-                ارسال پیامک گروهی
-              </ModalHeader>
-              <ModalBody>
-                <FormLayout
-                  methods={bulkSmsMethods}
-                  onSubmit={handleSendBulkSms}
-                  className="space-y-5"
-                >
-                  <FormTextArea name="text" label="متن پیامک" />
-                  <div className="flex flex-row-reverse justify-start gap-5">
-                    <Button
-                      type="submit"
-                      color="success"
-                      variant="flat"
-                      isLoading={isLoading}
-                    >
-                      ارسال
-                    </Button>
-                    <Button
-                      type="button"
-                      color="danger"
-                      variant="flat"
-                      onPress={() => {
-                        onClose()
-                        bulkSmsMethods.reset()
-                      }}
-                    >
-                      بستن
-                    </Button>
-                  </div>
-                </FormLayout>
-              </ModalBody>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
+
+      {filtersRestored && (
+        <DataTable
+          columns={columns}
+          apiMethods={CUSTOMER_REPORT_API}
+          key={currentKey}
+          dataTableId="customer_report_table"
+          extraFilterParameters={filters}
+        />
+      )}
     </div>
   )
 }

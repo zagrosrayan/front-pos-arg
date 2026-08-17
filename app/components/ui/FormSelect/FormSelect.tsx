@@ -52,6 +52,7 @@ export interface SelectSearchProps<T extends FieldValues> extends InputProps {
   usePortal?: boolean
   showInfo?: (data: any) => ReactNode
   selectionMode?: SelectionMode
+  onSelectedItemChange?: (item: any | null) => void
 }
 
 const FormSelect = <T extends FieldValues>({
@@ -67,6 +68,7 @@ const FormSelect = <T extends FieldValues>({
   usePortal = false,
   showInfo,
   selectionMode = 'single',
+  onSelectedItemChange,
   ...props
 }: SelectSearchProps<T>) => {
   const { control, setValue, watch, formState, clearErrors } =
@@ -172,6 +174,7 @@ const FormSelect = <T extends FieldValues>({
       setSelectedKeys(new Set([key]))
       setInputValue(defaultValue[labelIndex])
       setSelectedItems([defaultValue])
+      onSelectedItemChange?.(defaultValue)
       setValue(
         name,
         defaultValue[keyIndex as keyof typeof defaultValue] as PathValue<
@@ -183,9 +186,20 @@ const FormSelect = <T extends FieldValues>({
     } else if (defaultValue && items.length) {
       // For single-selection mode with a primitive default value
       const key = String(defaultValue)
+      const matchedItem = items.find((item) => String(item[keyIndex]) === key)
+
       setSelectedKeys(new Set([key]))
-      setInputValue(items.find((item) => item[keyIndex] == key)[labelIndex])
-      setSelectedItems([{ [keyIndex]: defaultValue }])
+
+      if (matchedItem) {
+        setInputValue(matchedItem[labelIndex] ?? '')
+        setSelectedItems([matchedItem])
+        onSelectedItemChange?.(matchedItem)
+      } else {
+        // مقدار فرم معتبر است ولی ممکن است آیتم در صفحه اول API نباشد.
+        // در این حالت مقدار را پاک نمی‌کنیم.
+        setSelectedItems([{ [keyIndex]: defaultValue }])
+      }
+
       setValue(name, defaultValue as PathValue<T, Path<T>>)
       setIsOpen(false)
     } else if (items.length || !isFetching) {
@@ -253,6 +267,8 @@ const FormSelect = <T extends FieldValues>({
             )
           : [...prev, item]
       }
+
+      onSelectedItemChange?.(updatedItems.length > 0 ? updatedItems[0] : null)
 
       // Schedule setValue after state update
       setTimeout(() => {

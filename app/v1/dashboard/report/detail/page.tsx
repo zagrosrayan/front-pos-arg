@@ -32,8 +32,15 @@ import { toast } from 'react-toastify'
 
 const Page = () => {
   const searchParams = useSearchParams()
-  const orderId = searchParams.get('order_id') // Extract order_id from URL
+  const orderId = searchParams.get('order_id')
+  const rawReturnTo = searchParams.get('return_to')
   const router = useRouter()
+
+  const returnTo =
+    rawReturnTo?.startsWith(DASHBOARD_PATH.REPORT) &&
+    !rawReturnTo.startsWith(DASHBOARD_PATH.REPORT_DETAIL)
+      ? rawReturnTo
+      : DASHBOARD_PATH.REPORT
   const [isLoading, setIsLoading] = useState(true)
   const [orderData, setOrderData] = useState<OrderResponseProps | null>(null)
   const [isPrintLoading, setIsPrintLoading] = useState(false)
@@ -53,7 +60,7 @@ const Page = () => {
         setOrderData(orderDataResponse)
       } else {
         toast.warning(EMPTY_CONTENT_ERROR)
-        router.push(DASHBOARD_PATH.MAIN)
+        router.replace(returnTo)
       }
     } catch (error) {
       console.error('Failed to fetch order details:', error)
@@ -81,7 +88,7 @@ const Page = () => {
       fetchOrderDetails()
     } else {
       toast.warning(EMPTY_CONTENT_ERROR)
-      router.push(DASHBOARD_PATH.REPORT)
+      router.replace(returnTo)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -91,9 +98,14 @@ const Page = () => {
     </p>
   ) : (
     <div className="flex h-fit max-h-[calc(100svh-90px)] flex-col gap-5 overflow-y-auto p-5 pb-20 md:pb-0">
-      <h1 className="text-xl font-bold text-default-700">
-        {ORDERS_DETAIL_TEXT}
-      </h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-xl font-bold text-default-700">
+          {ORDERS_DETAIL_TEXT}
+        </h1>
+        <Button variant="flat" onPress={() => router.push(returnTo)}>
+          بازگشت به لیست سفارشات
+        </Button>
+      </div>
       <div className="flex flex-col gap-5 xl:flex-row">
         <div className="flex w-full flex-col gap-5">
           {orderData && <OrderDetailTable orderData={orderData} />}

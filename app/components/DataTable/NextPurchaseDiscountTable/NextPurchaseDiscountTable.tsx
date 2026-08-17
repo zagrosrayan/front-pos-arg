@@ -70,6 +70,7 @@ const NextPurchaseDiscountTable = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isSmsUpdating, setIsSmsUpdating] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const [existingDiscount, setExistingDiscount] =
     useState<NextPurchaseDiscountResponseProps | null>(null)
@@ -129,6 +130,46 @@ const NextPurchaseDiscountTable = () => {
     fetchProfitManagers()
   }, [fetchProfitManagers])
 
+  const resetFormToDefaults = useCallback(() => {
+    methods.reset({
+      is_active: true,
+      sms_enabled: true,
+      usage_limit: 1,
+      profit_manager_ids: [],
+      target_customer_types: [],
+    } as any)
+  }, [methods])
+
+  const openEditForm = () => {
+    if (!existingDiscount) return
+
+    methods.reset({
+      name: existingDiscount.name,
+      minimum_purchase_amount: existingDiscount.minimum_purchase_amount,
+      discount_percentage: existingDiscount.discount_percentage,
+      discount_validity_days: existingDiscount.discount_validity_days,
+      profit_manager_ids: Array.isArray(existingDiscount.profit_manager_ids)
+        ? existingDiscount.profit_manager_ids.map(Number)
+        : [],
+      target_customer_types: Array.isArray(
+        existingDiscount.target_customer_types
+      )
+        ? (existingDiscount.target_customer_types as TargetCustomerType[])
+        : [],
+      is_active: existingDiscount.is_active !== false,
+      sms_enabled: existingDiscount.sms_enabled !== false,
+      usage_limit: 1,
+    } as any)
+
+    setIsEditing(true)
+  }
+
+  const cancelEdit = () => {
+    setIsEditing(false)
+    resetFormToDefaults()
+    methods.clearErrors()
+  }
+
   const handleSubmit = async (data: FormValues) => {
     try {
       setIsLoading(true)
@@ -146,37 +187,41 @@ const NextPurchaseDiscountTable = () => {
             : undefined,
         profit_manager_ids: data.profit_manager_ids,
         target_customer_types: data.target_customer_types,
-        is_active: data.is_active,
+        is_active: data.is_active ?? true,
         sms_enabled: data.sms_enabled ?? true,
         usage_limit: 1,
       }
 
+      const isUpdate = isEditing && Boolean(existingDiscount?.id)
+
       const response = await apiRequest<any>(
-        NEXT_PURCHASE_DISCOUNT_API.create(payload)
+        isUpdate
+          ? NEXT_PURCHASE_DISCOUNT_API.update(existingDiscount!.id, payload)
+          : NEXT_PURCHASE_DISCOUNT_API.create(payload)
       )
 
-      if (response) {
-        methods.reset({
-          is_active: true,
-          sms_enabled: true,
-          usage_limit: 1,
-          profit_manager_ids: [],
-          target_customer_types: [],
-        } as any)
+      if (!response) return
 
-        let createdItem = extractData(response.data)
+      let savedItem = extractData(response.data)
 
-        if (!createdItem) {
-          const listResponse = await apiRequest<any>(
-            NEXT_PURCHASE_DISCOUNT_API.getAll()
-          )
-          createdItem = extractData(listResponse?.data)
-        }
+      if (!savedItem) {
+        const listResponse = await apiRequest<any>(
+          NEXT_PURCHASE_DISCOUNT_API.getAll()
+        )
+        savedItem = extractData(listResponse?.data)
+      }
 
-        if (createdItem) {
-          setExistingDiscount(createdItem)
-          infoDisclosure.onOpen()
-        }
+      if (savedItem) {
+        setExistingDiscount(savedItem)
+      }
+
+      if (isUpdate) {
+        setIsEditing(false)
+        resetFormToDefaults()
+        toast.success('تنظیمات تخفیف خرید بعدی با موفقیت ویرایش شد')
+      } else {
+        resetFormToDefaults()
+        if (savedItem) infoDisclosure.onOpen()
       }
     } catch (error) {
       if (isValidationErrorResponse<FormValues>(error)) {
@@ -207,6 +252,8 @@ const NextPurchaseDiscountTable = () => {
       )
       if (response) {
         setExistingDiscount(null)
+        setIsEditing(false)
+        resetFormToDefaults()
         deleteDisclosure.onClose()
       }
     } catch (error) {
@@ -293,11 +340,13 @@ const NextPurchaseDiscountTable = () => {
         </p>
       </div>
 
-      {!existingDiscount && (
+      {(!existingDiscount || isEditing) && (
         <div className="space-y-10">
           <div className="space-y-5">
             <h1 className="px-3 text-xl font-bold text-default-700">
-              ایجاد تنظیمات جدید برای تخفیف بعدی :
+              {isEditing
+                ? 'ویرایش تنظیمات تخفیف بعدی :'
+                : 'ایجاد تنظیمات جدید برای تخفیف بعدی :'}
             </h1>
 
             <FormLayout<FormValues>
@@ -418,14 +467,29 @@ const NextPurchaseDiscountTable = () => {
                 radius="sm"
                 isLoading={isLoading}
               >
-                {CREATE_DISCOUNT_CODE_LABEL}
+                {isEditing ? 'ذخیره تغییرات' : CREATE_DISCOUNT_CODE_LABEL}
               </Button>
+
+              {isEditing && (
+                <Button
+                  color="default"
+                  variant="flat"
+                  fullWidth
+                  type="button"
+                  size="lg"
+                  radius="sm"
+                  onPress={cancelEdit}
+                  isDisabled={isLoading}
+                >
+                  انصراف
+                </Button>
+              )}
             </FormLayout>
           </div>
         </div>
       )}
 
-      {existingDiscount && (
+      {existingDiscount && !isEditing && (
         <div className="space-y-5">
           <div className="rounded-lg border-2 border-warning-300 bg-warning-50 p-4">
             <p className="text-warning-700">
@@ -515,15 +579,25 @@ const NextPurchaseDiscountTable = () => {
                     {existingDiscount?.sms_enabled !== false ? 'روشن' : 'خاموش'}
                   </td>
                   <td className="p-3 text-center">
-                    <button
-                      onClick={() =>
-                        existingDiscount?.id &&
-                        openDeleteModal(existingDiscount.id)
-                      }
-                      className="cursor-pointer whitespace-nowrap rounded-full bg-danger-500 px-4 py-2 text-white transition-opacity hover:opacity-80"
-                    >
-                      حذف
-                    </button>
+                    <div className="flex items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={openEditForm}
+                        className="cursor-pointer whitespace-nowrap rounded-full bg-primary-500 px-4 py-2 text-white transition-opacity hover:opacity-80"
+                      >
+                        ویرایش
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          existingDiscount?.id &&
+                          openDeleteModal(existingDiscount.id)
+                        }
+                        className="cursor-pointer whitespace-nowrap rounded-full bg-danger-500 px-4 py-2 text-white transition-opacity hover:opacity-80"
+                      >
+                        حذف
+                      </button>
+                    </div>
                   </td>
                 </tr>
               </tbody>
