@@ -41,8 +41,12 @@ interface ResidentSelectionSectionProps {
   setSelectedResident: (data: ResidentData | null) => void
 }
 
-const toEnglishDigits = (value: string) =>
-  value.replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+const normalizeSearchQuery = (value: string) =>
+  value
+    .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+    .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+    .replace(/[\u200c\u200d\ufeff]/g, '')
+    .trim()
 
 const ResidentSelectionSection = ({
   setValue,
@@ -55,19 +59,26 @@ const ResidentSelectionSection = ({
     <>
       <AsyncPaginate
         inputId="room-reservation-select"
-        placeholder="شماره اتاق را وارد کنید..."
+        placeholder="شماره اتاق، رزرو، نام یا موبایل..."
         value={selectedOption}
-        debounceTimeout={300}
+        debounceTimeout={250}
         loadOptions={async (searchQuery, _loadedOptions, additional) => {
           const page = additional?.page || 1
-          const normalizedQuery = toEnglishDigits(
-            String(searchQuery || '').trim()
+          const normalizedQuery = normalizeSearchQuery(
+            String(searchQuery || '')
           )
           try {
             const response = await apiRequest<any>({
               ...USER_RESIDENT_API.getAll(),
               params: {
                 page,
+
+                // q مسیر اصلی جستجوی جدید است و روی اتاق، رزرو،
+                // نام مهمان و موبایل جستجو می‌کند.
+                q: normalizedQuery || undefined,
+
+                // برای سازگاری با بک‌اندهای قدیمی تا زمان deploy کامل
+                // این دو پارامتر هم باقی می‌مانند.
                 room_number: normalizedQuery || undefined,
                 reserve_number: normalizedQuery || undefined,
               },

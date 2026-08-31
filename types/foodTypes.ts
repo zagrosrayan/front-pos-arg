@@ -8,6 +8,7 @@ export interface FoodRequestProps {
   description: string | null
   status: string | null
   price: string
+  image?: File | null
   article_id: string | number | null | ArticleResponseProps
   food_id: string | number | null | FoodResponseProps
   profit_manager_id: string | number | null | ProfitManagerProps
@@ -23,6 +24,7 @@ export interface FoodResponseProps extends ModificationsProps {
   profit_manager_id: string
   description: string | null
   image: string | null
+  image_url?: string | null
   article: ArticleResponseProps
   profit_manager: ProfitManagerProps
 }
@@ -33,6 +35,7 @@ export interface FoodReportSummaryProps {
   total_price: number
   total_quantity: number
 }
+
 export interface FoodReportResponseProps {
   id: number
   food_name: string

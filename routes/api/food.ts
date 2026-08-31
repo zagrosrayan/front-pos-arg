@@ -4,14 +4,18 @@ export const FOOD_API = {
   getAll: (): AxiosRequestConfig => ({
     url: '/v1/food/list',
   }),
-  create: (data: any): AxiosRequestConfig => ({
+
+  create: (data: FormData): AxiosRequestConfig => ({
     url: '/v1/food/create',
     method: 'POST',
     data,
   }),
-  updateById: (data: any): AxiosRequestConfig => ({
+
+  // برای آپلود فایل در PHP/Laravel، درخواست را POST می‌فرستیم
+  // و داخل FormData مقدار _method=PUT قرار می‌گیرد.
+  updateById: (data: FormData): AxiosRequestConfig => ({
     url: '/v1/food/update/{food}',
-    method: 'PUT',
+    method: 'POST',
     data,
   }),
 }

@@ -21,7 +21,6 @@ const apiClient: AxiosInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_BASE_API_URL || '',
   headers: {
     Accept: 'application/json',
-    'Content-Type': 'application/json',
   },
 })
 
@@ -50,7 +49,10 @@ const apiRequest = async <T>(
       config.url = processUrl(config.url, params || {})
     }
 
-    if (config.data) {
+    if (
+      config.data &&
+      !(typeof FormData !== 'undefined' && config.data instanceof FormData)
+    ) {
       config.data = preprocessData(config.data, payload?.optionalKeys)
     }
 

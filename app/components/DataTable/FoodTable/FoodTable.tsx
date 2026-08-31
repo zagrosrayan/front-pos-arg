@@ -1,4 +1,5 @@
-// / eslint-disable @typescript-eslint/no-explicit-any /
+/* eslint-disable @next/next/no-img-element */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   ADD_FOOD_LABEL,
   CANCEL_LABEL,
@@ -32,7 +33,7 @@ import {
   Tooltip,
   useDisclosure,
 } from '@heroui/react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { useForm } from 'react-hook-form'
 import { TbEdit } from 'react-icons/tb'
 import FormInput from '../../ui/FormInput'
@@ -42,19 +43,175 @@ import { PROFIT_MANAGER_API } from '@/routes/api/profit'
 import { toast } from 'react-toastify'
 import TextInputWithDelay from '@/app/components/ui/SearchInputWithDelay/SearchInputWithDelay'
 
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+
+const getSelectId = (
+  value: string | number | null | undefined | { id?: string | number | null }
+) => {
+  if (value === null || value === undefined) return ''
+
+  if (typeof value === 'object') {
+    return value.id !== null && value.id !== undefined ? String(value.id) : ''
+  }
+
+  return String(value)
+}
+
+const normalizePrice = (value: string | number | null | undefined) =>
+  String(value ?? '')
+    .replace(/,/g, '')
+    .trim()
+
+const buildFoodFormData = (
+  data: FoodRequestProps,
+  image: File | null,
+  spoofPut = false
+) => {
+  const formData = new FormData()
+
+  formData.append('name', data.name ?? '')
+  formData.append('slug', data.slug ?? '')
+  formData.append('price', normalizePrice(data.price))
+  formData.append('description', data.description ?? '')
+  formData.append('article_id', getSelectId(data.article_id))
+  formData.append('profit_manager_id', getSelectId(data.profit_manager_id))
+
+  if (data.status !== null && data.status !== undefined) {
+    formData.append('status', String(data.status))
+  }
+
+  if (image) {
+    formData.append('image', image)
+  }
+
+  if (spoofPut) {
+    formData.append('_method', 'PUT')
+  }
+
+  return formData
+}
+
+const FoodImageField = ({
+  label,
+  file,
+  existingUrl,
+  onChange,
+}: {
+  label: string
+  file: File | null
+  existingUrl?: string | null
+  onChange: (file: File | null) => void
+}) => {
+  const inputRef = useRef<HTMLInputElement | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(
+    existingUrl ?? null
+  )
+
+  useEffect(() => {
+    if (!file) {
+      setPreviewUrl(existingUrl ?? null)
+      if (inputRef.current) {
+        inputRef.current.value = ''
+      }
+      return
+    }
+
+    const objectUrl = URL.createObjectURL(file)
+    setPreviewUrl(objectUrl)
+
+    return () => {
+      URL.revokeObjectURL(objectUrl)
+    }
+  }, [file, existingUrl])
+
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0] ?? null
+
+    if (!selectedFile) {
+      onChange(null)
+      return
+    }
+
+    if (!ALLOWED_IMAGE_TYPES.includes(selectedFile.type)) {
+      toast.error('فرمت تصویر باید JPG، PNG یا WEBP باشد.')
+      event.target.value = ''
+      onChange(null)
+      return
+    }
+
+    if (selectedFile.size > MAX_IMAGE_SIZE) {
+      toast.error('حجم تصویر نباید بیشتر از ۵ مگابایت باشد.')
+      event.target.value = ''
+      onChange(null)
+      return
+    }
+
+    onChange(selectedFile)
+  }
+
+  return (
+    <div className="flex min-w-0 flex-col gap-2">
+      <span className="text-sm text-default-600">{label}</span>
+
+      <label className="flex min-h-12 cursor-pointer items-center gap-3 rounded-medium border border-default-200 bg-default-50 px-3 py-2 transition hover:border-default-400">
+        {previewUrl ? (
+          <img
+            src={previewUrl}
+            alt="پیش‌نمایش تصویر غذا"
+            className="size-12 shrink-0 rounded-medium object-cover"
+          />
+        ) : (
+          <span className="grid size-12 shrink-0 place-items-center rounded-medium bg-default-100 text-xs text-default-500">
+            بدون عکس
+          </span>
+        )}
+
+        <span className="min-w-0 text-sm text-default-600">
+          {file ? file.name : existingUrl ? 'تعویض تصویر' : 'انتخاب تصویر'}
+          <span className="mt-1 block text-[11px] text-default-400">
+            JPG / PNG / WEBP — حداکثر ۵MB
+          </span>
+        </span>
+
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="hidden"
+          onChange={handleFileChange}
+        />
+      </label>
+
+      {file && (
+        <Button
+          type="button"
+          size="sm"
+          variant="light"
+          color="danger"
+          className="w-fit"
+          onPress={() => onChange(null)}
+        >
+          حذف انتخاب
+        </Button>
+      )}
+    </div>
+  )
+}
+
 const FoodTable = () => {
   const { isOpen, onOpen, onOpenChange, onClose } = useDisclosure()
-  const [filters, setFilters] = useState<{ name: string }>({ name: '' }) // Initial filters
+  const [filters, setFilters] = useState<{ name: string }>({ name: '' })
 
   const methods = useForm<FoodRequestProps>({
     mode: 'onChange',
     defaultValues: {
       status: null,
     },
-    // اضافه کردن اعتبارسنجی
     criteriaMode: 'all',
     resolver: async (data) => {
       const errors: any = {}
+
       if (!data.name) {
         errors.name = 'نام غذا الزامی است.'
       }
@@ -65,19 +222,21 @@ const FoodTable = () => {
         errors.price = 'قیمت غذا الزامی است.'
       }
       if (!data.description) {
-        errors.description = 'قیمت غذا الزامی است.'
+        errors.description = 'توضیحات غذا الزامی است.'
       }
       if (!data.article_id) {
         errors.article_id = 'دسته‌بندی غذا الزامی است.'
       }
       if (!data.profit_manager_id) {
-        errors.profit_manager_id = 'مدیر سود الزامی است.'
+        errors.profit_manager_id = 'مرکز درآمد الزامی است.'
       }
+
       return {
         values:
           errors.name ||
           errors.slug ||
           errors.price ||
+          errors.description ||
           errors.article_id ||
           errors.profit_manager_id
             ? {}
@@ -93,9 +252,12 @@ const FoodTable = () => {
       status: null,
     },
   })
+
   const [selectedFood, setSelectedFood] = useState<FoodResponseProps | null>(
     null
   )
+  const [createImage, setCreateImage] = useState<File | null>(null)
+  const [updateImage, setUpdateImage] = useState<File | null>(null)
   const [isCreateLoading, setIsCreateLoading] = useState(false)
   const [isUpdateLoading, setIsUpdateLoading] = useState(false)
   const [tableKey, setTableKey] = useState(0)
@@ -107,11 +269,13 @@ const FoodTable = () => {
 
   const updateProfitManagerId = updateMethods.watch('profit_manager_id')
   const updateArticleId = updateMethods.watch('article_id')
+
   useEffect(() => {
     if (formKey || updatedKey) {
-      //test
+      // نگه‌داشتن رفتار فعلی فرم‌های select
     }
   }, [formKey, updatedKey])
+
   useEffect(() => {
     setFormKey((prev) => prev + 1)
   }, [profitManagerId, articleId])
@@ -122,19 +286,24 @@ const FoodTable = () => {
 
   const handleUpdateModalOpen = (food: FoodResponseProps) => {
     setSelectedFood(food)
+    setUpdateImage(null)
+
     updateMethods.reset({
-      name: food?.name,
-      slug: food?.slug,
+      name: food.name,
+      slug: food.slug,
       price: food.price,
       description: food.description,
-
-      article_id: food?.article,
-      profit_manager_id: food?.profit_manager,
+      status: food.status,
+      article_id: food.article,
+      profit_manager_id: food.profit_manager,
+      food_id: food.id,
+      image: null,
     })
+
     onOpen()
   }
 
-  const handleCreateFood = async (data: any) => {
+  const handleCreateFood = async (data: FoodRequestProps) => {
     if (
       !data.name ||
       !data.slug ||
@@ -147,19 +316,21 @@ const FoodTable = () => {
       return
     }
 
-    data.article_id = data.article_id.toString()
-    data.profit_manager_id = data.profit_manager_id.toString()
-    data.price = data.price.toLocaleString()
-
     try {
       setIsCreateLoading(true)
-      const response = await apiRequest(FOOD_API.create(data))
+
+      const formData = buildFoodFormData(data, createImage)
+      const response = await apiRequest(FOOD_API.create(formData))
 
       toast.success(response?.message)
       setTableKey((prev) => prev + 1)
-      methods.reset()
+      setCreateImage(null)
+      methods.reset({
+        status: null,
+      })
     } catch (error) {
       console.error(error)
+
       if (isValidationErrorResponse<FoodRequestProps>(error)) {
         handleApiErrors(error, methods.setError)
       }
@@ -169,22 +340,30 @@ const FoodTable = () => {
   }
 
   const handleUpdateFood = async (data: FoodRequestProps) => {
-    data.article_id = data.article_id ? data.article_id.toString() : ''
-    data.profit_manager_id = data.profit_manager_id
-      ? data.profit_manager_id.toString()
-      : ''
-    data.price = data.price.toLocaleString()
+    if (!selectedFood?.id) {
+      toast.error('غذای انتخاب‌شده معتبر نیست.')
+      return
+    }
 
     try {
       setIsUpdateLoading(true)
-      const response = await apiRequest(FOOD_API.updateById(data), {
-        food: selectedFood?.id,
+
+      const formData = buildFoodFormData(data, updateImage, true)
+      const response = await apiRequest(FOOD_API.updateById(formData), {
+        food: selectedFood.id,
       })
+
       toast.success(response?.message)
       setTableKey((prev) => prev + 1)
+      setUpdateImage(null)
+      setSelectedFood(null)
       onClose()
     } catch (error) {
       console.error(error)
+
+      if (isValidationErrorResponse<FoodRequestProps>(error)) {
+        handleApiErrors(error, updateMethods.setError)
+      }
     } finally {
       setIsUpdateLoading(false)
     }
@@ -195,6 +374,20 @@ const FoodTable = () => {
       name: 'شناسه غذا',
       uid: 'id',
       render: (food: FoodResponseProps) => <span>{food.id}</span>,
+    },
+    {
+      name: 'تصویر',
+      uid: 'image',
+      render: (food: FoodResponseProps) =>
+        food.image_url ? (
+          <img
+            src={food.image_url}
+            alt={food.name}
+            className="size-14 rounded-medium border border-default-100 object-cover"
+          />
+        ) : (
+          <span className="text-xs text-default-400">بدون تصویر</span>
+        ),
     },
     {
       name: NAME_LABEL,
@@ -208,7 +401,6 @@ const FoodTable = () => {
         <span>{food.slug ?? '-------'}</span>
       ),
     },
-
     {
       name: PRICE_LABEL,
       uid: 'price',
@@ -221,7 +413,11 @@ const FoodTable = () => {
     {
       name: DESCRIPTION_LABEl,
       uid: 'description',
-      render: (food: FoodResponseProps) => <span>{food.name}</span>,
+      render: (food: FoodResponseProps) => (
+        <span className="line-clamp-2 max-w-72">
+          {food.description || '------'}
+        </span>
+      ),
     },
     {
       name: CATEGORY_FOOD_LABEL,
@@ -242,7 +438,7 @@ const FoodTable = () => {
       uid: 'actions',
       render: (food: FoodResponseProps) => (
         <div className="relative flex items-center justify-start gap-2">
-          <Tooltip content="ویرایش وضعیت" closeDelay={0} delay={0}>
+          <Tooltip content="ویرایش غذا" closeDelay={0} delay={0}>
             <Button
               isIconOnly
               variant="light"
@@ -259,12 +455,10 @@ const FoodTable = () => {
   ]
 
   const formatPrice = (value: string) => {
-    // فقط اعداد را از ورودی جدا می‌کنیم
     const numericValue = value.replace(/\D/g, '')
-
-    // فرمت‌دهی به عدد با سه رقم جدا
     return numericValue ? Number(numericValue).toLocaleString() : ''
   }
+
   return (
     <div className="flex flex-col gap-5">
       <div className="space-y-10">
@@ -272,6 +466,7 @@ const FoodTable = () => {
           <h1 className="px-3 text-xl font-bold text-default-700">
             {ADD_FOOD_LABEL} :
           </h1>
+
           <FormLayout<FoodRequestProps>
             onSubmit={handleCreateFood}
             className="grid gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6"
@@ -294,11 +489,12 @@ const FoodTable = () => {
                 if (!/^\d+$/.test(value.replace(/,/g, ''))) {
                   methods.setError('price', {
                     type: 'manual',
-                    message: 'لطفاً فقط عداد وارد کنید.',
+                    message: 'لطفاً فقط عدد وارد کنید.',
                   })
                 }
               }}
             />
+
             <FormInput<FoodRequestProps>
               name="description"
               label={DESCRIPTION_LABEl}
@@ -315,6 +511,13 @@ const FoodTable = () => {
               apiMethods={PROFIT_MANAGER_API}
               label={PROFIT_MANAGER_LABEL}
             />
+
+            <FoodImageField
+              label="تصویر غذا"
+              file={createImage}
+              onChange={setCreateImage}
+            />
+
             <Button
               color="success"
               size="lg"
@@ -328,7 +531,9 @@ const FoodTable = () => {
           </FormLayout>
         </div>
       </div>
+
       <h2 className="text-xl font-bold text-default-700">{FOOD_LIST_LABEL}</h2>
+
       <div className="sticky top-0 z-20 h-fit w-full bg-white pb-2 md:col-span-2 lg:col-span-1 xl:col-span-2 2xl:col-span-3">
         <TextInputWithDelay
           setValue={(value) => {
@@ -336,6 +541,7 @@ const FoodTable = () => {
           }}
         />
       </div>
+
       <DataTable
         columns={columns}
         apiMethods={FOOD_API}
@@ -343,13 +549,15 @@ const FoodTable = () => {
         dataTableId="food_table"
         extraFilterParameters={filters}
       />
+
       <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
         <ModalContent>
-          {(onClose) => (
+          {(modalOnClose) => (
             <>
               <ModalHeader className="flex flex-col gap-1">
                 {EDIT_ORDER_LABEL}
               </ModalHeader>
+
               <FormLayout<FoodRequestProps>
                 onSubmit={handleUpdateFood}
                 methods={updateMethods}
@@ -357,11 +565,13 @@ const FoodTable = () => {
                 <ModalBody>
                   <FormInput<FoodRequestProps> name="name" label={NAME_LABEL} />
                   <FormInput<FoodRequestProps> name="slug" label={TYPE_SLUG} />
+
                   <FormInput<FoodRequestProps>
                     name="price"
                     type="number"
                     label={PRICE_LABEL}
                   />
+
                   <FormInput<FoodRequestProps>
                     name="description"
                     label={DESCRIPTION_LABEl}
@@ -372,16 +582,34 @@ const FoodTable = () => {
                     apiMethods={ARTICLE_API}
                     label={CATEGORY_FOOD_LABEL}
                   />
+
                   <FormSelect<FoodRequestProps>
                     name="profit_manager_id"
                     apiMethods={PROFIT_MANAGER_API}
                     label={PROFIT_MANAGER_LABEL}
                   />
+
+                  <FoodImageField
+                    label="تصویر غذا"
+                    file={updateImage}
+                    existingUrl={selectedFood?.image_url}
+                    onChange={setUpdateImage}
+                  />
                 </ModalBody>
+
                 <ModalFooter>
-                  <Button color="danger" variant="light" onPress={onClose}>
+                  <Button
+                    color="danger"
+                    variant="light"
+                    onPress={() => {
+                      setUpdateImage(null)
+                      setSelectedFood(null)
+                      modalOnClose()
+                    }}
+                  >
                     {CANCEL_LABEL}
                   </Button>
+
                   <Button
                     color="success"
                     type="submit"
