@@ -324,7 +324,9 @@ const Checkout = ({ className }: CheckoutProps) => {
         'use_club_points',
       ] as any)
     } catch (error) {
-      console.error('Failed to calculate order:', error)
+      // API/validation failures are handled below; using console.error here makes
+      // Next.js show its unhandled-error overlay even though the error is caught.
+      console.warn('Failed to calculate order:', error)
       const errorMessage = (error as any)?.response?.data?.message || ''
       if (errorMessage.includes('|expired')) {
         setExpiredDiscountMessage('کد تخفیف منقضی شده است')
