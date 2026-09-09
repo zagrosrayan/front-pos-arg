@@ -18,10 +18,10 @@ const CheckoutSummarySection = ({
     <div>
       <dl className="flex flex-col gap-4 rounded-large border-2 border-default-100 p-4 py-4">
         <div className="flex justify-between">
-          <dt className="text-small text-default-500">جمع بعد از تخفیف</dt>
+          <dt className="text-small text-default-500">مبلغ قبل از تخفیف</dt>
           <dd className="flex gap-1 text-small font-semibold text-default-700">
             <span className="font-semibold">
-              {Number(calculatedData?.items?.total_price).toLocaleString(
+              {Number(calculatedData?.items?.product_price).toLocaleString(
                 'fa-IR'
               )}
             </span>
@@ -30,10 +30,10 @@ const CheckoutSummarySection = ({
         </div>
 
         <div className="flex justify-between">
-          <dt className="text-small text-default-500">مبلغ قبل از تخفیف</dt>
+          <dt className="text-small text-default-500">جمع بعد از تخفیف</dt>
           <dd className="flex gap-1 text-small font-semibold text-default-700">
             <span className="font-semibold">
-              {Number(calculatedData?.items?.product_price).toLocaleString(
+              {Number(calculatedData?.items?.total_price).toLocaleString(
                 'fa-IR'
               )}
             </span>
