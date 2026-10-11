@@ -55,6 +55,36 @@ const CheckoutPrice = ({ orderData, simple = false }: Props) => {
 
   // const rateService = totalPrice * (Number(orderData.rate_service) / 100)
 
+  const amountAfterDiscount = Math.max(
+    0,
+    Number(orderData?.product_price ?? 0) -
+      Number(orderData?.discounted_price ?? 0)
+  )
+
+  const beforeDiscountRow = (
+    <div className="flex justify-between">
+      <dt className="text-small text-default-500">مبلغ قبل از تخفیف</dt>
+      <dd className="flex gap-1 text-small font-semibold text-default-700">
+        <span className="font-semibold">
+          {Number(orderData?.product_price).toLocaleString('fa-IR')}
+        </span>
+        <span className="font-semibold">ریال</span>
+      </dd>
+    </div>
+  )
+
+  const afterDiscountRow = (
+    <div className="flex justify-between">
+      <dt className="text-small text-default-500">جمع بعد از تخفیف</dt>
+      <dd className="flex gap-1 text-small font-semibold text-default-700">
+        <span className="font-semibold">
+          {amountAfterDiscount.toLocaleString('fa-IR')}
+        </span>
+        <span className="font-semibold">ریال</span>
+      </dd>
+    </div>
+  )
+
   return (
     <>
       <dl
@@ -74,24 +104,17 @@ const CheckoutPrice = ({ orderData, simple = false }: Props) => {
             />
           </> 
         )}
-        <div className="flex justify-between">
-          <dt className="text-small text-default-500">جمع بعد از تخفیف</dt>
-          <dd className="flex gap-1 text-small font-semibold text-default-700">
-            <span className="font-semibold">
-              {Number(orderData?.price).toLocaleString('fa-IR')}
-            </span>
-            <span className="font-semibold">ریال</span>
-          </dd>
-        </div>
-        <div className="flex justify-between">
-          <dt className="text-small text-default-500">مبلغ قبل از تخفیف</dt>
-          <dd className="flex gap-1 text-small font-semibold text-default-700">
-            <span className="font-semibold">
-              {Number(orderData?.product_price).toLocaleString('fa-IR')}
-            </span>
-            <span className="font-semibold">ریال</span>
-          </dd>
-        </div>
+        {simple ? (
+          <>
+            {beforeDiscountRow}
+            {afterDiscountRow}
+          </>
+        ) : (
+          <>
+            {afterDiscountRow}
+            {beforeDiscountRow}
+          </>
+        )}
         <div className="flex justify-between">
           <dt className="text-small text-default-500">تخفیف</dt>
           <dd className="flex gap-1 text-small font-semibold text-default-700">

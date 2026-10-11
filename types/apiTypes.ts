@@ -19,6 +19,7 @@ export interface PaginationResponseProps<T> {
 }
 export interface CalculateItems {
   discounted_price?: number | string
+  price?: number | string
   rate_service?: number | string
   tax_amount?: number | string
   total_price?: number | string

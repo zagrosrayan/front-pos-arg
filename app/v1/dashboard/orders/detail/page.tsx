@@ -225,6 +225,8 @@ const applyDiscountToPayload = (payload: any, data: OrderRequestProps) => {
   payload.discount_value = null
   payload.use_club_points = null
   payload.use_next_purchase_discount = false
+  payload.discount_next_purchase_code = null
+  payload.discount_next_purchase_code = null
 
   if (!selectedType) {
     return payload
@@ -242,6 +244,10 @@ const applyDiscountToPayload = (payload: any, data: OrderRequestProps) => {
     payload.use_next_purchase_discount = Boolean(
       (data as any)?.use_next_purchase_discount
     )
+    payload.discount_next_purchase_code =
+      (data as any)?.discount_next_purchase_code ?? null
+    payload.discount_next_purchase_code =
+      (data as any)?.discount_next_purchase_code ?? null
   } else if (selectedType === '5') {
     payload.use_club_points = Boolean((data as any)?.use_club_points)
   }
