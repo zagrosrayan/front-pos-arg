@@ -328,7 +328,59 @@ const Page = () => {
     }
   }
 
+  const validateOrderIdentity = (data: OrderRequestProps): boolean => {
+    if (tabSelected !== 'guest') {
+      const reserveNumber = String(
+        (data as any)?.reserve_number ?? methods.getValues('reserve_number') ?? ''
+      ).trim()
+      const roomNumber = String(
+        (data as any)?.room_number ?? methods.getValues('room_number') ?? ''
+      ).trim()
+
+      if (!selectedResident || !reserveNumber || !roomNumber) {
+        methods.setError('reserve_number' as any, {
+          type: 'manual',
+          message: 'انتخاب مشتری مقیم و شماره اتاق الزامی است.',
+        })
+        return false
+      }
+      return true
+    }
+
+    if (customerType === 'existing' && !selectedCustomer?.id) {
+      methods.setError('customer_id' as any, {
+        type: 'manual',
+        message: 'انتخاب مشتری الزامی است.',
+      })
+      return false
+    }
+
+    if (customerType === 'new') {
+      const name = String((data as any)?.name ?? '').trim()
+      const phone = String((data as any)?.phone ?? '').trim()
+      if (!name || !phone) {
+        if (!name) {
+          methods.setError('name' as any, {
+            type: 'manual',
+            message: 'نام مشتری الزامی است.',
+          })
+        }
+        if (!phone) {
+          methods.setError('phone' as any, {
+            type: 'manual',
+            message: 'شماره تلفن مشتری الزامی است.',
+          })
+        }
+        return false
+      }
+    }
+
+    return true
+  }
+
   const handleCompleteOrder = async (data: OrderRequestProps) => {
+    if (!validateOrderIdentity(data)) return
+
     try {
       setIsCompleteLoading(true)
 
@@ -416,6 +468,8 @@ const Page = () => {
         payload = {
           payment_method: (freshData as any)?.payment_method,
           order_type: 'resident',
+          reserve_number: (freshData as any)?.reserve_number,
+          room_number: (freshData as any)?.room_number,
         }
 
         if (
@@ -490,6 +544,8 @@ const Page = () => {
   }
 
   const handlePrePrint = async (data: OrderRequestProps) => {
+    if (!validateOrderIdentity(data)) return
+
     try {
       setIsCompleteLoading(true)
 
@@ -533,6 +589,7 @@ const Page = () => {
       } else {
         payload = {
           reserve_number: (freshData as any)?.reserve_number,
+          room_number: (freshData as any)?.room_number,
           order_type: 'resident',
         }
 

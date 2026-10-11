@@ -142,6 +142,39 @@ const Checkout = ({ className }: CheckoutProps) => {
   const discountType = methods.watch('selected_discount_type')
 
   const validateCustomerOrReserve = (data: OrderRequestProps) => {
+    const selectedCustomerType = data.customer_type || customerType
+
+    if (selectedCustomerType === 'resident') {
+      const reserveNumber = normalizeText(data.reserve_number)
+      const roomNumber = normalizeText(data.room_number)
+
+      if (!reserveNumber || !roomNumber) {
+        methods.setError('reserve_number' as any, {
+          type: 'manual',
+          message: 'انتخاب مشتری مقیم و شماره اتاق الزامی است.',
+        })
+        return false
+      }
+      methods.clearErrors('reserve_number' as any)
+    }
+
+    if (selectedCustomerType === 'guest') {
+      if (guestMode === 'existing' && !data.customer_id) {
+        methods.setError('customer_id' as any, {
+          type: 'manual',
+          message: 'انتخاب مشتری الزامی است.',
+        })
+        return false
+      }
+      if (guestMode === 'existing') {
+        methods.clearErrors('customer_id' as any)
+      }
+
+      if (guestMode === 'new' && !validateNewGuestFields(data)) {
+        return false
+      }
+    }
+
     const discountSelected =
       Boolean(data.selected_discount_type) && data.selected_discount_type !== ''
 
@@ -166,7 +199,7 @@ const Checkout = ({ className }: CheckoutProps) => {
     if (
       (data.selected_discount_type === '4' ||
         data.selected_discount_type === '5') &&
-      data.customer_type === 'guest'
+      selectedCustomerType === 'guest'
     ) {
       if (guestMode === 'existing' && !data.customer_id) {
         methods.setError('customer_id' as any, {
@@ -566,6 +599,8 @@ const Checkout = ({ className }: CheckoutProps) => {
       desc_number:
         data.service_type == ServiceType.dine_in ? data.desc_number : null,
       service_type: data.service_type,
+      customer_type: data.customer_type,
+      room_number: normalizeNullableText(data.room_number),
     }
 
     if (isNewGuest) {
