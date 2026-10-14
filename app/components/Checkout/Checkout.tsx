@@ -28,6 +28,7 @@ import {
 } from '@/types/orderType'
 import { hasDataChanged } from '@/utils'
 import { handleApiErrors } from '@/utils/handleApiError'
+import { handleOrderSubmit } from '@/utils/handleOrderSubmit'
 import { Button, cn, Form, Radio, RadioProps, Tooltip } from '@heroui/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -158,23 +159,6 @@ const Checkout = ({ className }: CheckoutProps) => {
       methods.clearErrors('reserve_number' as any)
     }
 
-    if (selectedCustomerType === 'guest') {
-      if (guestMode === 'existing' && !data.customer_id) {
-        methods.setError('customer_id' as any, {
-          type: 'manual',
-          message: 'انتخاب مشتری الزامی است.',
-        })
-        return false
-      }
-      if (guestMode === 'existing') {
-        methods.clearErrors('customer_id' as any)
-      }
-
-      if (guestMode === 'new' && !validateNewGuestFields(data)) {
-        return false
-      }
-    }
-
     const discountSelected =
       Boolean(data.selected_discount_type) && data.selected_discount_type !== ''
 
@@ -240,6 +224,9 @@ const Checkout = ({ className }: CheckoutProps) => {
     let valid = true
     const name = normalizeText((data as any).customer_name)
     const mobile = normalizeText((data as any).customer_mobile)
+
+    // A non-resident draft may be anonymous; partial customer details cannot be saved.
+    if (!name && !mobile) return true
 
     if (!name) {
       methods.setError('customer_name' as any, {
@@ -445,6 +432,10 @@ const Checkout = ({ className }: CheckoutProps) => {
           'service_type',
           orderData.service_type || ServiceType.dine_in
         )
+
+        if (!orderData.reserve) {
+          methods.setValue('customer_type', 'guest')
+        }
 
         if (orderData.customer) {
           methods.setValue('customer_type', 'guest')
@@ -765,7 +756,8 @@ const Checkout = ({ className }: CheckoutProps) => {
     <FormProvider {...methods}>
       <Form
         className={`relative min-w-[410px] pb-3 ${className ?? ''}`}
-        onSubmit={methods.handleSubmit(
+        onSubmit={handleOrderSubmit(
+          methods,
           isUpdating ? handleUpdateOrder : onSubmit
         )}
       >

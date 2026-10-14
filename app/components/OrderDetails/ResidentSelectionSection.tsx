@@ -14,7 +14,7 @@ import {
   NAME_COMPANY,
   ROOM_LABEL,
 } from '@/app/constant/label'
-import type { UseFormSetValue } from 'react-hook-form'
+import { useFormContext, type UseFormSetValue } from 'react-hook-form'
 import type { OrderRequestProps } from '@/types/orderType'
 import type { UserResidentResponseProps } from '@/types/userTypes'
 
@@ -55,6 +55,7 @@ const ResidentSelectionSection = ({
   selectedResident,
   setSelectedResident,
 }: ResidentSelectionSectionProps) => {
+  const { clearErrors } = useFormContext<OrderRequestProps>()
   return (
     <>
       <AsyncPaginate
@@ -133,6 +134,7 @@ const ResidentSelectionSection = ({
           if (option) {
             setValue('room_number', option.data.Room || '')
             setValue('reserve_number', option.value || '')
+            clearErrors(['room_number', 'reserve_number'])
             setSelectedOption(option)
             setSelectedResident(option.data ?? null)
           } else {

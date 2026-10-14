@@ -238,7 +238,7 @@ const CompleteOrderModal = ({
     >
       <ModalContent>
         {(onClose) => (
-          <FormLayout methods={methods} onSubmit={onSubmit}>
+          <FormLayout methods={methods} onSubmit={onSubmit} revalidateOnSubmit>
             <ModalHeader className="flex flex-col gap-1">
               {CONFIRM_ORDER_LABEL}
             </ModalHeader>
@@ -556,6 +556,19 @@ const CompleteOrderModal = ({
                   <ResidentSelectionSection {...residentSelectProps} />
                 </Tab>
               </Tabs>
+
+              {(methods.formState.errors.reserve_number ||
+                methods.formState.errors.room_number ||
+                methods.formState.errors.customer_id) && (
+                <p role="alert" className="text-sm text-danger">
+                  {String(
+                    (tabSelected === 'guest'
+                      ? methods.formState.errors.customer_id
+                      : methods.formState.errors.reserve_number ||
+                        methods.formState.errors.room_number)?.message || ''
+                  )}
+                </p>
+              )}
 
               <div className="grid grid-cols-2">
                 {!isLoading && paymentMethods && (

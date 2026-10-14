@@ -303,7 +303,10 @@ const Page = () => {
     [orderData]
   )
 
-  const handleTabChange = (key: string) => setTabSelected(key)
+  const handleTabChange = (key: string) => {
+    methods.clearErrors()
+    setTabSelected(key)
+  }
 
   const postToInvoice = (payload: any) => {
     const invoiceWindow = window.open('../../invoice', '_blank')
@@ -328,7 +331,10 @@ const Page = () => {
     }
   }
 
-  const validateOrderIdentity = (data: OrderRequestProps): boolean => {
+  const validateOrderIdentity = (
+    data: OrderRequestProps,
+    requireGuest = true
+  ): boolean => {
     if (tabSelected !== 'guest') {
       const reserveNumber = String(
         (data as any)?.reserve_number ?? methods.getValues('reserve_number') ?? ''
@@ -348,6 +354,7 @@ const Page = () => {
     }
 
     if (customerType === 'existing' && !selectedCustomer?.id) {
+      if (!requireGuest) return true
       methods.setError('customer_id' as any, {
         type: 'manual',
         message: 'انتخاب مشتری الزامی است.',
@@ -355,9 +362,23 @@ const Page = () => {
       return false
     }
 
+    if (
+      requireGuest &&
+      customerType === 'existing' &&
+      (!String(selectedCustomer?.name ?? '').trim() ||
+        !String(selectedCustomer?.phone ?? '').trim())
+    ) {
+      methods.setError('customer_id', {
+        type: 'manual',
+        message: 'نام و شماره تلفن مشتری را تکمیل کنید یا مشتری دیگری انتخاب کنید.',
+      })
+      return false
+    }
+
     if (customerType === 'new') {
       const name = String((data as any)?.name ?? '').trim()
       const phone = String((data as any)?.phone ?? '').trim()
+      if (!requireGuest && !name && !phone) return true
       if (!name || !phone) {
         if (!name) {
           methods.setError('name' as any, {
@@ -544,7 +565,7 @@ const Page = () => {
   }
 
   const handlePrePrint = async (data: OrderRequestProps) => {
-    if (!validateOrderIdentity(data)) return
+    if (!validateOrderIdentity(data, false)) return
 
     try {
       setIsCompleteLoading(true)
@@ -702,7 +723,7 @@ const Page = () => {
       const orderDataResponse = response?.data.items[0]
       if (orderDataResponse) {
         setOrderData(orderDataResponse)
-        if (!!orderDataResponse?.customer && !orderDataResponse.reserve)
+        if (!orderDataResponse.reserve)
           setTabSelected('guest')
       } else {
         toast.warning(EMPTY_CONTENT_ERROR)

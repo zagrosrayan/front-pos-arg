@@ -1,6 +1,7 @@
 'use client'
 import { Form } from '@heroui/react'
 import { ReactNode } from 'react'
+import { handleOrderSubmit } from '@/utils/handleOrderSubmit'
 import {
   FieldValues,
   FormProvider,
@@ -13,6 +14,7 @@ interface FormLayoutProps<T extends FieldValues> {
   onSubmit: SubmitHandler<T>
   className?: string
   disabled?: boolean
+  revalidateOnSubmit?: boolean
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   methods: UseFormReturn<T, any, undefined>
 }
@@ -22,12 +24,17 @@ const FormLayout = <T extends FieldValues>({
   onSubmit,
   className,
   disabled = false,
+  revalidateOnSubmit = false,
   methods,
 }: FormLayoutProps<T>) => {
   return (
     <FormProvider {...methods}>
       <Form
-        onSubmit={methods.handleSubmit(onSubmit)}
+        onSubmit={
+          revalidateOnSubmit
+            ? handleOrderSubmit(methods, onSubmit)
+            : methods.handleSubmit(onSubmit)
+        }
         className="w-full items-stretch"
       >
         <fieldset

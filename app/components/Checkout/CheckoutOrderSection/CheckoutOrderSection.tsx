@@ -352,6 +352,7 @@ const CheckoutOrderSection = ({
               if (opt) {
                 methods.setValue('room_number', opt.data.Room || '')
                 methods.setValue('reserve_number', opt.value || '')
+                methods.clearErrors(['room_number', 'reserve_number'])
                 setSelectedResidentOption(opt)
               } else {
                 methods.setValue('room_number', '')
@@ -641,13 +642,17 @@ const CheckoutOrderSection = ({
               <Controller
                 control={methods.control}
                 name={'customer_name' as any}
-                rules={{ required: 'نام مشتری الزامی است.' }}
+                rules={{
+                  validate: (value) =>
+                    !normalizeText(methods.getValues('customer_mobile' as any)) ||
+                    !!normalizeText(value) ||
+                    'نام مشتری الزامی است.',
+                }}
                 render={({ field, fieldState }) => (
                   <Input
                     {...field}
                     label="نام مشتری"
                     placeholder="نام مشتری را وارد کنید"
-                    isRequired
                     isInvalid={!!fieldState.error}
                     errorMessage={fieldState.error?.message}
                     variant="bordered"
@@ -660,7 +665,10 @@ const CheckoutOrderSection = ({
                 control={methods.control}
                 name={'customer_mobile' as any}
                 rules={{
-                  required: 'شماره موبایل الزامی است.',
+                  validate: (value) =>
+                    !normalizeText(methods.getValues('customer_name' as any)) ||
+                    !!normalizeText(value) ||
+                    'شماره موبایل الزامی است.',
                   pattern: {
                     value: /^09[0-9]{9}$/,
                     message: 'شماره موبایل باید با 09 شروع شده و 11 رقم باشد.',
@@ -671,7 +679,6 @@ const CheckoutOrderSection = ({
                     {...field}
                     label="شماره موبایل"
                     placeholder="09xxxxxxxxx"
-                    isRequired
                     isInvalid={!!fieldState.error}
                     errorMessage={fieldState.error?.message}
                     variant="bordered"

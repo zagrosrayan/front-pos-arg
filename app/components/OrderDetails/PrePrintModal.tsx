@@ -269,7 +269,7 @@ const PrePrintModal = ({
     >
       <ModalContent className="min-h-[450px]">
         {(onClose) => (
-          <FormLayout methods={methods} onSubmit={onSubmit}>
+          <FormLayout methods={methods} onSubmit={onSubmit} revalidateOnSubmit>
             <ModalHeader className="flex flex-col gap-1">
               تأیید اطلاعات قبل از پرینت
             </ModalHeader>
@@ -527,7 +527,12 @@ const PrePrintModal = ({
                       <FormInput<OrderRequestProps>
                         name="name"
                         label={NAME_LABEL}
-                        rules={{ required: 'نام مشتری الزامی است' }}
+                        rules={{
+                          validate: (value) =>
+                            !String(methods.getValues('phone') ?? '').trim() ||
+                            !!String(value ?? '').trim() ||
+                            'نام مشتری الزامی است',
+                        }}
                       />
                       <FormInput<OrderRequestProps>
                         name="phone"
@@ -535,7 +540,10 @@ const PrePrintModal = ({
                         type="number"
                         maxLength={11}
                         rules={{
-                          required: 'شماره تلفن الزامی است.',
+                          validate: (value) =>
+                            !String(methods.getValues('name') ?? '').trim() ||
+                            !!String(value ?? '').trim() ||
+                            'شماره تلفن الزامی است.',
                           pattern: {
                             value: /^09\d{9}$/,
                             message:
@@ -571,6 +579,19 @@ const PrePrintModal = ({
                   <ResidentSelectionSection {...residentSelectProps} />
                 </Tab>
               </Tabs>
+
+              {(methods.formState.errors.reserve_number ||
+                methods.formState.errors.room_number ||
+                methods.formState.errors.customer_id) && (
+                <p role="alert" className="text-sm text-danger">
+                  {String(
+                    (tabSelected === 'guest'
+                      ? methods.formState.errors.customer_id
+                      : methods.formState.errors.reserve_number ||
+                        methods.formState.errors.room_number)?.message || ''
+                  )}
+                </p>
+              )}
 
               <div className="mt-6 rounded-lg border border-default-200 bg-default-50 p-3">
                 <CheckoutDiscountSection
