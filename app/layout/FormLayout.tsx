@@ -1,13 +1,25 @@
 'use client'
 import { Form } from '@heroui/react'
-import { ReactNode } from 'react'
-import { handleOrderSubmit } from '@/utils/handleOrderSubmit'
+import { type BaseSyntheticEvent, type ReactNode } from 'react'
 import {
   FieldValues,
   FormProvider,
   SubmitHandler,
   UseFormReturn,
 } from 'react-hook-form'
+
+export function handleOrderSubmit<T extends FieldValues>(
+  methods: Pick<UseFormReturn<T>, 'clearErrors' | 'handleSubmit'>,
+  onSubmit: SubmitHandler<T>
+) {
+  const submit = methods.handleSubmit(onSubmit)
+
+  return (event?: BaseSyntheticEvent) => {
+    // Recheck current values instead of retaining errors on async selectors.
+    methods.clearErrors()
+    return submit(event)
+  }
+}
 
 interface FormLayoutProps<T extends FieldValues> {
   children: ReactNode

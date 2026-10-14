@@ -8,10 +8,24 @@ const React = require('react')
 const { renderToString } = require('react-dom/server')
 const { useForm } = require('react-hook-form')
 
-const filename = path.resolve(__dirname, '../utils/handleOrderSubmit.ts')
+const filename = path.resolve(__dirname, '../app/layout/FormLayout.tsx')
+const source = ts.createSourceFile(
+  filename,
+  fs.readFileSync(filename, 'utf8'),
+  ts.ScriptTarget.Latest,
+  true,
+  ts.ScriptKind.TSX
+)
+// Test the exported submit handler without mounting the HeroUI layout.
+const handler = source.statements.find(
+  (statement) =>
+    ts.isFunctionDeclaration(statement) &&
+    statement.name?.text === 'handleOrderSubmit'
+)
+assert.ok(handler, 'FormLayout exports the shared order submit handler')
 const compiled = new Module(filename, module)
 compiled._compile(
-  ts.transpileModule(fs.readFileSync(filename, 'utf8'), {
+  ts.transpileModule(handler.getText(source), {
     compilerOptions: { module: ts.ModuleKind.CommonJS },
   }).outputText,
   filename
