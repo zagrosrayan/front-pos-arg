@@ -331,10 +331,7 @@ const Page = () => {
     }
   }
 
-  const validateOrderIdentity = (
-    data: OrderRequestProps,
-    requireGuest = true
-  ): boolean => {
+  const validateOrderIdentity = (data: OrderRequestProps): boolean => {
     if (tabSelected !== 'guest') {
       const reserveNumber = String(
         (data as any)?.reserve_number ?? methods.getValues('reserve_number') ?? ''
@@ -354,7 +351,6 @@ const Page = () => {
     }
 
     if (customerType === 'existing' && !selectedCustomer?.id) {
-      if (!requireGuest) return true
       methods.setError('customer_id' as any, {
         type: 'manual',
         message: 'انتخاب مشتری الزامی است.',
@@ -363,7 +359,6 @@ const Page = () => {
     }
 
     if (
-      requireGuest &&
       customerType === 'existing' &&
       (!String(selectedCustomer?.name ?? '').trim() ||
         !String(selectedCustomer?.phone ?? '').trim())
@@ -378,7 +373,6 @@ const Page = () => {
     if (customerType === 'new') {
       const name = String((data as any)?.name ?? '').trim()
       const phone = String((data as any)?.phone ?? '').trim()
-      if (!requireGuest && !name && !phone) return true
       if (!name || !phone) {
         if (!name) {
           methods.setError('name' as any, {
@@ -456,7 +450,7 @@ const Page = () => {
         payload = {
           phone:
             customerType == 'existing'
-              ? selectedCustomer?.phone.replace(/[۰-۹]/g, (d: string) =>
+              ? selectedCustomer?.phone?.replace(/[۰-۹]/g, (d: string) =>
                   '۰۱۲۳۴۵۶۷۸۹'.indexOf(d).toString()
                 )
               : (freshData as any)?.phone?.replace(/[۰-۹]/g, (d: string) =>
@@ -565,8 +559,6 @@ const Page = () => {
   }
 
   const handlePrePrint = async (data: OrderRequestProps) => {
-    if (!validateOrderIdentity(data, false)) return
-
     try {
       setIsCompleteLoading(true)
 
@@ -579,7 +571,7 @@ const Page = () => {
         payload = {
           phone:
             customerType == 'existing'
-              ? selectedCustomer?.phone.replace(/[۰-۹]/g, (d: string) =>
+              ? selectedCustomer?.phone?.replace(/[۰-۹]/g, (d: string) =>
                   '۰۱۲۳۴۵۶۷۸۹'.indexOf(d).toString()
                 )
               : (freshData as any)?.phone?.replace(/[۰-۹]/g, (d: string) =>

@@ -142,110 +142,6 @@ const Checkout = ({ className }: CheckoutProps) => {
   const customerType = methods.watch('customer_type')
   const discountType = methods.watch('selected_discount_type')
 
-  const validateCustomerOrReserve = (data: OrderRequestProps) => {
-    const selectedCustomerType = data.customer_type || customerType
-
-    if (selectedCustomerType === 'resident') {
-      const reserveNumber = normalizeText(data.reserve_number)
-      const roomNumber = normalizeText(data.room_number)
-
-      if (!reserveNumber || !roomNumber) {
-        methods.setError('reserve_number' as any, {
-          type: 'manual',
-          message: 'انتخاب مشتری مقیم و شماره اتاق الزامی است.',
-        })
-        return false
-      }
-      methods.clearErrors('reserve_number' as any)
-    }
-
-    const discountSelected =
-      Boolean(data.selected_discount_type) && data.selected_discount_type !== ''
-
-    if (!discountSelected) {
-      methods.clearErrors(['customer_id', 'reserve_number'] as any)
-      return true
-    }
-
-    if (
-      (data.selected_discount_type === '4' ||
-        data.selected_discount_type === '5') &&
-      data.customer_type !== 'guest'
-    ) {
-      methods.setError('customer_id' as any, {
-        type: 'manual',
-        message:
-          'برای استفاده از تخفیف خرید بعدی یا امتیاز باشگاه، انتخاب مشتری مهمان الزامی است.',
-      })
-      return false
-    }
-
-    if (
-      (data.selected_discount_type === '4' ||
-        data.selected_discount_type === '5') &&
-      selectedCustomerType === 'guest'
-    ) {
-      if (guestMode === 'existing' && !data.customer_id) {
-        methods.setError('customer_id' as any, {
-          type: 'manual',
-          message: 'انتخاب مشتری الزامی است.',
-        })
-        return false
-      }
-
-      if (guestMode === 'new') {
-        const name = normalizeText((data as any).customer_name)
-        const mobile = normalizeText((data as any).customer_mobile)
-        if (!name || !mobile) {
-          if (!name) {
-            methods.setError('customer_name' as any, {
-              type: 'manual',
-              message: 'نام مشتری الزامی است.',
-            })
-          }
-          if (!mobile) {
-            methods.setError('customer_mobile' as any, {
-              type: 'manual',
-              message: 'شماره موبایل الزامی است.',
-            })
-          }
-          return false
-        }
-      }
-    }
-
-    methods.clearErrors(['customer_id', 'reserve_number'] as any)
-    return true
-  }
-
-  const validateNewGuestFields = (data: OrderRequestProps): boolean => {
-    if (customerType !== 'guest' || guestMode !== 'new') return true
-
-    let valid = true
-    const name = normalizeText((data as any).customer_name)
-    const mobile = normalizeText((data as any).customer_mobile)
-
-    // A non-resident draft may be anonymous; partial customer details cannot be saved.
-    if (!name && !mobile) return true
-
-    if (!name) {
-      methods.setError('customer_name' as any, {
-        type: 'manual',
-        message: 'نام مشتری الزامی است.',
-      })
-      valid = false
-    }
-    if (!mobile) {
-      methods.setError('customer_mobile' as any, {
-        type: 'manual',
-        message: 'شماره موبایل الزامی است.',
-      })
-      valid = false
-    }
-
-    return valid
-  }
-
   const calculateOrder = useCallback(async () => {
     const data = methods.getValues()
     const order = cart.map((item) => ({
@@ -630,9 +526,6 @@ const Checkout = ({ className }: CheckoutProps) => {
   }
 
   const handleUpdateOrder = async (data: OrderRequestProps) => {
-    if (!validateCustomerOrReserve(data)) return
-    if (!validateNewGuestFields(data)) return
-
     if (
       data.selected_discount_type === '4' &&
       customerDiscountInfo?.nextPurchaseDiscountExpired
@@ -685,9 +578,6 @@ const Checkout = ({ className }: CheckoutProps) => {
   }
 
   const onSubmit = async (data: OrderRequestProps) => {
-    if (!validateCustomerOrReserve(data)) return
-    if (!validateNewGuestFields(data)) return
-
     if (
       data.selected_discount_type === '4' &&
       customerDiscountInfo?.nextPurchaseDiscountExpired

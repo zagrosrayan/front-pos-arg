@@ -642,12 +642,6 @@ const CheckoutOrderSection = ({
               <Controller
                 control={methods.control}
                 name={'customer_name' as any}
-                rules={{
-                  validate: (value) =>
-                    !normalizeText(methods.getValues('customer_mobile' as any)) ||
-                    !!normalizeText(value) ||
-                    'نام مشتری الزامی است.',
-                }}
                 render={({ field, fieldState }) => (
                   <Input
                     {...field}
@@ -664,16 +658,6 @@ const CheckoutOrderSection = ({
               <Controller
                 control={methods.control}
                 name={'customer_mobile' as any}
-                rules={{
-                  validate: (value) =>
-                    !normalizeText(methods.getValues('customer_name' as any)) ||
-                    !!normalizeText(value) ||
-                    'شماره موبایل الزامی است.',
-                  pattern: {
-                    value: /^09[0-9]{9}$/,
-                    message: 'شماره موبایل باید با 09 شروع شده و 11 رقم باشد.',
-                  },
-                }}
                 render={({ field, fieldState }) => (
                   <Input
                     {...field}

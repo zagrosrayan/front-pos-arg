@@ -527,29 +527,12 @@ const PrePrintModal = ({
                       <FormInput<OrderRequestProps>
                         name="name"
                         label={NAME_LABEL}
-                        rules={{
-                          validate: (value) =>
-                            !String(methods.getValues('phone') ?? '').trim() ||
-                            !!String(value ?? '').trim() ||
-                            'نام مشتری الزامی است',
-                        }}
                       />
                       <FormInput<OrderRequestProps>
                         name="phone"
                         label={PHONE_LABEL}
                         type="number"
                         maxLength={11}
-                        rules={{
-                          validate: (value) =>
-                            !String(methods.getValues('name') ?? '').trim() ||
-                            !!String(value ?? '').trim() ||
-                            'شماره تلفن الزامی است.',
-                          pattern: {
-                            value: /^09\d{9}$/,
-                            message:
-                              'شماره تلفن باید با 09 شروع شده و 11 رقم باشد.',
-                          },
-                        }}
                       />
                     </div>
                   )}
