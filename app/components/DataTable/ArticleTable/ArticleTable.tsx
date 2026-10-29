@@ -23,11 +23,12 @@ import {
   ModalContent,
   ModalFooter,
   ModalHeader,
+  Switch,
   Tooltip,
   useDisclosure,
 } from '@heroui/react'
 import { useEffect, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { TbEdit } from 'react-icons/tb'
 import FormInput from '../../ui/FormInput'
 import DataTable, { ColumnsData } from '../DataTable'
@@ -40,6 +41,8 @@ const ArticleTable = () => {
     defaultValues: {
       status: null,
       type: null,
+      menu_order: null,
+      menu_visible: true,
     },
   })
   const updateMethods = useForm<ArticleRequestProps>({
@@ -47,6 +50,8 @@ const ArticleTable = () => {
     defaultValues: {
       status: null,
       type: null,
+      menu_order: null,
+      menu_visible: true,
     },
   })
   const [selectedArticle, setSelectedArticle] =
@@ -83,6 +88,8 @@ const ArticleTable = () => {
       name: article?.name,
       slug: article?.slug,
       type: article.type,
+      menu_order: article.menu_order ?? null,
+      menu_visible: article.menu_visible !== false,
     })
     onOpen()
   }
@@ -138,6 +145,26 @@ const ArticleTable = () => {
         <span>{article.slug ?? '-------'}</span>
       ),
     },
+    {
+      name: 'ترتیب از راست',
+      uid: 'menu_order',
+      render: (article: ArticleResponseProps) => (
+        <span>{article.menu_order ?? 'خودکار'}</span>
+      ),
+    },
+    {
+      name: 'نمایش در منو',
+      uid: 'menu_visible',
+      render: (article: ArticleResponseProps) => (
+        <span
+          className={
+            article.menu_visible === false ? 'text-danger' : 'text-success'
+          }
+        >
+          {article.menu_visible === false ? 'مخفی' : 'نمایش داده شود'}
+        </span>
+      ),
+    },
 
     {
       name: 'عملیات',
@@ -173,6 +200,26 @@ const ArticleTable = () => {
           >
             <FormInput<ArticleRequestProps> name="name" label={NAME_LABEL} />
             <FormInput<ArticleRequestProps> name="slug" label={TYPE_SLUG} />
+            <FormInput<ArticleRequestProps>
+              name="menu_order"
+              label="ترتیب نمایش از راست"
+              type="number"
+              min={0}
+              placeholder="خالی = بعد از موارد مرتب‌شده"
+            />
+            <Controller
+              name="menu_visible"
+              control={methods.control}
+              render={({ field }) => (
+                <Switch
+                  className="my-auto"
+                  isSelected={field.value !== false}
+                  onValueChange={field.onChange}
+                >
+                  نمایش دسته در منو
+                </Switch>
+              )}
+            />
 
             <Button
               color="success"
@@ -213,6 +260,25 @@ const ArticleTable = () => {
                   <FormInput<ArticleRequestProps>
                     name="slug"
                     label={TYPE_SLUG}
+                  />
+                  <FormInput<ArticleRequestProps>
+                    name="menu_order"
+                    label="ترتیب نمایش از راست"
+                    type="number"
+                    min={0}
+                    placeholder="خالی = بعد از موارد مرتب‌شده"
+                  />
+                  <Controller
+                    name="menu_visible"
+                    control={updateMethods.control}
+                    render={({ field }) => (
+                      <Switch
+                        isSelected={field.value !== false}
+                        onValueChange={field.onChange}
+                      >
+                        نمایش دسته در منو
+                      </Switch>
+                    )}
                   />
                 </ModalBody>
                 <ModalFooter>

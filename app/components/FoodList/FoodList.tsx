@@ -139,7 +139,7 @@ const FoodList = () => {
               key={index}
               className="relative flex h-fit w-full gap-5 rounded-small border-2 border-default-100 p-3"
             >
-              <div className="relative h-32 w-32 flex-shrink-0 animate-pulse rounded-small bg-gray-300"></div>
+              <div className="relative h-36 w-36 flex-shrink-0 animate-pulse rounded-small bg-gray-300"></div>
               <div className="flex flex-col items-start justify-between gap-2">
                 <div className="h-3 w-32 animate-pulse rounded-medium bg-gray-300" />
                 <div className="h-2 w-32 animate-pulse rounded-medium bg-gray-300" />

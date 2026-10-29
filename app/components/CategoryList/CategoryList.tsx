@@ -43,7 +43,17 @@ const CategoryList = () => {
       const response = await apiRequest<
         PaginationResponseProps<ArticleResponseProps>
       >(ARTICLE_API.getAll())
-      setArticlesList(response?.data.items as ArticleResponseProps[])
+      const articles = (response?.data.items as ArticleResponseProps[]) ?? []
+      setArticlesList(
+        articles
+          .filter((article) => article.menu_visible !== false)
+          .sort((left, right) => {
+            const leftOrder = left.menu_order ?? Number.MAX_SAFE_INTEGER
+            const rightOrder = right.menu_order ?? Number.MAX_SAFE_INTEGER
+
+            return leftOrder - rightOrder || left.id - right.id
+          })
+      )
       setIsLoading(false)
     } catch (error) {
       console.error(error)
@@ -57,6 +67,7 @@ const CategoryList = () => {
   return (
     <div
       ref={scrollRef}
+      dir="rtl"
       className="flex w-full gap-5 overflow-x-auto overflow-y-hidden px-5 active:cursor-grab md:pb-3"
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}

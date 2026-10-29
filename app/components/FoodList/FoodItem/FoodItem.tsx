@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { useAddToCart } from '@/app/hook/useCart'
 import { FoodResponseProps } from '@/types/foodTypes'
 import { Button } from '@heroui/react'
@@ -11,12 +12,15 @@ const FoodItem = ({ food }: FoodItemProps) => {
   const addToCart = useAddToCart()
   return (
     <div className="relative flex h-fit w-full gap-5 rounded-small border-2 border-default-100 p-3">
-      <div
-        className="relative h-28 w-28 flex-shrink-0 rounded-small bg-cover bg-center bg-no-repeat"
-        style={{
-          backgroundImage: `url("${food.image ?? '/assets/images/default-food.png'}")`,
-        }}
-      ></div>
+      <div className="relative h-36 w-36 flex-shrink-0 overflow-hidden rounded-small bg-default-50">
+        <img
+          src={food.image_url ?? food.image ?? '/assets/images/default-food.png'}
+          alt={food.name}
+          loading="lazy"
+          decoding="async"
+          className="h-full w-full object-contain p-1"
+        />
+      </div>
       <Button
         isIconOnly
         radius="none"
@@ -25,7 +29,7 @@ const FoodItem = ({ food }: FoodItemProps) => {
       >
         <FiPlus className="size-7 rounded-full bg-black p-1 text-white" />
       </Button>
-      <div className="flex flex-col items-start gap-3">
+      <div className="min-w-0 flex flex-1 flex-col items-start gap-3">
         <h1 className="mt-2 text-lg font-bold">{food.name}</h1>
         {food.description && (
           <p className="line-clamp-1 text-sm text-default-400">

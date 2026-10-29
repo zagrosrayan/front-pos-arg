@@ -11,6 +11,8 @@ export interface ArticleResponseProps extends ModificationsProps {
   image: string
   article_id: string | number | null | ArticleResponseProps
   type: TypeResponseProps | string | number | null
+  menu_order: number | null
+  menu_visible: boolean
 }
 
 export interface ArticleRequestProps extends ModificationsProps {
@@ -23,4 +25,6 @@ export interface ArticleRequestProps extends ModificationsProps {
   image: string
   article_id: string | number | null | ArticleResponseProps
   type: TypeResponseProps | string | number | null
+  menu_order?: number | null
+  menu_visible?: boolean
 }
