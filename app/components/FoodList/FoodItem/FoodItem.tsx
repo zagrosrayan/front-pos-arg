@@ -3,6 +3,7 @@ import { useAddToCart } from '@/app/hook/useCart'
 import { FoodResponseProps } from '@/types/foodTypes'
 import { Button } from '@heroui/react'
 import { FiPlus } from 'react-icons/fi'
+import { useEffect, useState } from 'react'
 
 interface FoodItemProps {
   food: FoodResponseProps
@@ -10,15 +11,25 @@ interface FoodItemProps {
 
 const FoodItem = ({ food }: FoodItemProps) => {
   const addToCart = useAddToCart()
+  const defaultImage = '/assets/images/default-food.png'
+  const [imageSrc, setImageSrc] = useState(
+    food.image_url ?? food.image ?? defaultImage
+  )
+
+  useEffect(() => {
+    setImageSrc(food.image_url ?? food.image ?? defaultImage)
+  }, [food.image, food.image_url])
+
   return (
     <div className="relative flex h-fit w-full gap-5 rounded-small border-2 border-default-100 p-3">
       <div className="relative h-36 w-36 flex-shrink-0 overflow-hidden rounded-small bg-default-50">
         <img
-          src={food.image_url ?? food.image ?? '/assets/images/default-food.png'}
+          src={imageSrc}
           alt={food.name}
           loading="lazy"
           decoding="async"
           className="h-full w-full object-contain p-1"
+          onError={() => setImageSrc(defaultImage)}
         />
       </div>
       <Button
