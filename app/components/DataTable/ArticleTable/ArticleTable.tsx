@@ -34,7 +34,11 @@ import FormInput from '../../ui/FormInput'
 import DataTable, { ColumnsData } from '../DataTable'
 import { toast } from 'react-toastify'
 
-const ArticleTable = () => {
+interface ArticleTableProps {
+  settingsOnly?: boolean
+}
+
+const ArticleTable = ({ settingsOnly = false }: ArticleTableProps) => {
   const { isOpen, onOpen, onOpenChange, onClose } = useDisclosure()
   const methods = useForm<ArticleRequestProps>({
     mode: 'onChange',
@@ -188,7 +192,7 @@ const ArticleTable = () => {
   ]
   return (
     <div className="flex flex-col gap-5">
-      <div className="space-y-10">
+      {!settingsOnly && <div className="space-y-10">
         <div className="space-y-5">
           <h1 className="px-3 text-xl font-bold text-default-700">
             {CATEGORY_FOOD_LABEL} :
@@ -233,8 +237,16 @@ const ArticleTable = () => {
             </Button>
           </FormLayout>
         </div>
-      </div>
-      <h2 className="text-xl font-bold text-default-700">{FOOD_LIST}</h2>
+      </div>}
+      {settingsOnly && (
+        <div className="rounded-medium border border-success-100 bg-success-50 px-4 py-3 text-sm text-success-700">
+          عدد کمتر، دسته را از سمت راست زودتر نمایش می‌دهد. دسته‌های خاموش در
+          منوی POS و منوی عمومی نمایش داده نمی‌شوند.
+        </div>
+      )}
+      <h2 className="text-xl font-bold text-default-700">
+        {settingsOnly ? 'دسته‌بندی‌های منو' : FOOD_LIST}
+      </h2>
       <DataTable<ArticleResponseProps>
         columns={columns}
         apiMethods={ARTICLE_API}

@@ -22,6 +22,7 @@ export const DASHBOARD_PATH = {
   CUSTOMER_REPORT: '/v1/dashboard/report/customer',
   CUSTOMER_REPORT_DETAIL: '/v1/dashboard/report/customer/detail',
   ARTICLE: '/v1/dashboard/article',
+  MENU_SETTINGS: '/v1/dashboard/menu-settings',
   // اضافه شده
   ROLES: '/v1/dashboard/roles',
   TAX_SETTINGS: '/v1/dashboard/tax-settings',

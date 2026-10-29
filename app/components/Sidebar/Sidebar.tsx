@@ -22,7 +22,12 @@ import { BiSolidReport } from 'react-icons/bi'
 import { FaHome } from 'react-icons/fa'
 import { FaBagShopping, FaClipboardList } from 'react-icons/fa6'
 import { IoPeopleSharp, IoSettingsSharp } from 'react-icons/io5'
-import { MdInsertChart, MdRestaurant, MdWarehouse } from 'react-icons/md'
+import {
+  MdInsertChart,
+  MdRestaurant,
+  MdTune,
+  MdWarehouse,
+} from 'react-icons/md'
 import { PiListChecksBold } from 'react-icons/pi'
 import { useSelector } from 'react-redux'
 import CheckoutDrawer from '../Checkout/CheckoutDrawer'
@@ -142,6 +147,24 @@ const Sidebar = () => {
               href={DASHBOARD_PATH.ARTICLE}
             >
               <PiListChecksBold className="size-5" />
+            </Button>
+          </SidebarTooltip>
+        </PermissionGuard>
+
+        <PermissionGuard
+          roles={userInfo?.roles as RoleResponseProps[]}
+          permissionName="manage_article"
+        >
+          <SidebarTooltip label="تنظیمات نمایش منو">
+            <Button
+              as={Link}
+              isIconOnly
+              aria-label="تنظیمات نمایش منو"
+              color="success"
+              className="rounded-full text-white"
+              href={DASHBOARD_PATH.MENU_SETTINGS}
+            >
+              <MdTune className="size-5" />
             </Button>
           </SidebarTooltip>
         </PermissionGuard>

@@ -28,7 +28,7 @@ const FoodItem = ({ food }: FoodItemProps) => {
           alt={food.name}
           loading="lazy"
           decoding="async"
-          className="h-full w-full object-contain p-1"
+          className="h-full w-full object-cover"
           onError={() => setImageSrc(defaultImage)}
         />
       </div>
